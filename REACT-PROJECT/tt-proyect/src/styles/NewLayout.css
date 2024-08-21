@@ -1,0 +1,170 @@
+.new-layout {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+  
+.sidebar {
+    width: 20%;
+    background-color: #2d3945;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+  
+.sidebar-top {
+    background-color: #2196f3;
+    height: 55px;
+    color: white;
+    font-size: 20px;
+    text-align: center;
+    position: relative;
+    padding: 0 10px;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+  
+.sidebar-logo-container {
+    background-color: #2B3D51;
+    height: 30%; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+  
+.logo-img {
+    width: 55%;
+    margin-bottom: 5px;
+}
+  
+.logo-text {
+    font-size: 12px;
+    color: white;
+}
+  
+.sidebar-content {
+    flex-grow: 1;
+    padding: 0;
+}
+  
+.nav-menu {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+  
+.nav-menu li {
+    border-bottom: 1px solid #3a4757;
+}
+  
+.nav-menu li.active > .dropdown-menu-button {
+    background-color: #1E6DC7; /* Cambia el color de fondo cuando está activo */
+}
+  
+.nav-menu a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+}
+  
+.nav-menu a i {
+    margin-right: 15px; /* Aumenta el espacio entre el ícono y el texto */
+}
+  
+.dropdown-menu-button {
+    cursor: pointer;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+  
+.dropdown-menu {
+    display: none; /* Oculto por defecto */
+    padding-left: 20px;
+    background-color: #2d3945;
+}
+  
+.dropdown-menu li {
+    padding: 8px 0;
+}
+  
+.dropdown-menu a {
+    font-size: 14px;
+    color: #b0c4de;
+}
+  
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+  
+.top-bar {
+    background-color: #404040;
+    height: 55px; 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: white;
+}
+  
+.content {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #f4f4f4;
+}
+  
+/* Manejo del despliegue de los submenús con animación */
+.menu-item.active .dropdown-menu {
+    display: block;
+    animation: slideDown 0.3s ease-in-out;
+}
+  
+@keyframes slideDown {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 500px; /* Ajusta según sea necesario */
+        opacity: 1;
+    }
+}
+  
+/* Asegúrate de que las demás secciones se ajusten correctamente */
+.nav-menu .menu-item {
+    padding: 10px 0;
+}
+
+/* Estilos adicionales que vinieron del HTML */
+.nav-lateral-list-menu ul li {
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+.nav-lateral-list-menu ul li ul {
+    background-color: rgb(43, 61, 81);
+    display: none;
+}
+
+.nav-lateral-list-menu ul li.active ul {
+    display: block;
+}
+
+.nav-lateral-list-menu ul li div {
+    cursor: pointer;
+}
+
+.nav-lateral-list-menu ul li ul li a {
+    padding-left: 30px;
+    color: #fff;
+    text-decoration: none;
+}

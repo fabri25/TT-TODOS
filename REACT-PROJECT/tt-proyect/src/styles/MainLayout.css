@@ -1,0 +1,134 @@
+.main-layout {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .navbar-lateral {
+    width: 20%; /* Aumentar el ancho de la barra lateral */
+    background-color: #2B3D51;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+
+  }
+  
+  .navbar-top {
+    background-color: #1E6DC7; /* Azul más claro */
+    height: 55px; /* Reducir la altura de la franja azul */
+  }
+  
+  .logo-container {
+    text-align: center;
+    padding: 0 20px; /* Eliminar todo el padding superior e inferior */
+    margin-top: 0; /* Eliminar cualquier margen superior */
+    border-bottom: 1px solid #34495e;
+  }
+  
+  .logo-img {
+    width: 90%;
+    display: block; /* Asegura que la imagen se comporte como un bloque */
+    margin: 0 auto; /* Centra la imagen */
+    padding: 0;
+  }
+  
+  .logo-text {
+    font-size: 14px;
+    color: white;
+  }
+  
+  .nav-menu ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .nav-menu li {
+    padding: 12px 20px; /* Aumentar el padding para más espacio */
+    font-size: 14px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #34495e; /* Línea de separación */
+  }
+  
+  .nav-menu a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+  
+  .nav-menu a i {
+    margin-right: 10px; /* Ajustar la separación entre los íconos y las leyendas */
+  }
+  
+  .nav-menu .dropdown-menu {
+    padding-left: 30px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    background-color: #34495e;
+  }
+  
+  .nav-menu .dropdown-menu-button {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .nav-menu .dropdown-menu-button i {
+    margin-left: auto;
+  }
+  
+  .sidebar-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px; /* Ajustar el padding para alineación */
+    border-top: 1px solid #3c4a60;
+  }
+  
+  .user-img {
+    width: 30px;
+    border-radius: 50%;
+  }
+  
+  .content-page-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .navbar-user-top {
+    background-color: #3c4a60;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .navbar-user-top ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  .navbar-user-top li {
+    margin-left: 20px;
+  }
+  
+  .main-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #f4f4f4;
+  }
+  

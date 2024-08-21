@@ -1,0 +1,145 @@
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-image: url('../assets/images/background.jpg');
+    background-size: cover;
+    background-position: center;
+  }
+  
+  
+  .login-card {
+    background: rgba(128, 128, 128, 0.8); /* Cambia a gris transparente */
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 300px; /* Reduce el tamaño del recuadro */
+  }
+  
+  .login-logo {
+    width: 60px; /* Ajuste el tamaño del logo si es necesario */
+    margin-bottom: 20px;
+  }
+  
+  h2 {
+    margin-bottom: 20px;
+    font-size: 1rem; /* Reduce el tamaño del texto */
+    color: #fff;
+  }
+  
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Open Sans', sans-serif;
+  }
+  
+  
+  .container {
+    min-height: 100vh;
+    min-width: 100vw;
+    background-image: url('../assets/images/background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .card {
+    background: rgba(0, 0, 0, 0.55); /* Negro transparente */
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  
+  .form-control {
+    border: 1px solid rgba(255, 255, 255, 0.6); /* Borde blanco semitransparente */
+    border-radius: 0.25rem;
+    padding-left: 2.5rem;
+    padding-right: 1rem;
+    font-size: 1rem;
+    background-color: rgba(0, 0, 0, 0.55); /* Fondo negro transparente, igual que la tarjeta */
+    color: #fff; /* Texto blanco para que sea visible sobre el fondo oscuro */
+  }
+  
+  .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Placeholder blanco semitransparente */
+  }
+  
+  .form-label {
+    position: absolute;
+    top: 50%;
+    left: 2.5rem;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: #aaa;
+    transition: 0.2s ease all;
+    pointer-events: none;
+  }
+  
+  .form-control:not(:placeholder-shown) ~ .form-label {
+    top: -10px;
+    left: 2.5rem;
+    font-size: 0.75rem;
+    color: #fff;
+  }
+  
+  .form-control:focus {
+    border-color: #fff;
+    background-color: rgba(0, 0, 0, 0.65); /* Fondo un poco más opaco cuando está enfocado */
+    box-shadow: none;
+  }
+  
+  .form-control:focus::before {
+    color: #000; /* Mantiene el icono negro incluso cuando está enfocado */
+  }
+  
+  .form-control:focus::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    height: 2px;
+    width: 100%;
+    background-color: #fff;
+    transition: width 0.3s ease;
+  }
+  
+  .btn-outline-light {
+    color: #fff;
+    border-color: #fff;
+  }
+  
+  .btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+  
+  /* Estilo para "¿Olvidaste tu contraseña?" */
+  .btn-link {
+    color: #fff;
+    text-decoration: none;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-weight: normal;
+    cursor: pointer;
+  }
+  
+  .btn-link:hover {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: underline;
+  }
+  
