@@ -4,10 +4,10 @@ from mysql.connector import Error
 def create_connection():
     try:
         connection = mysql.connector.connect(
-            host='34.136.136.216',  # Reemplaza con la IP pública de tu instancia de Google Cloud SQL
-            user='root',  # Reemplaza con tu nombre de usuario, por ejemplo 'root'
-            password='tt-finance1',  # Reemplaza con la contraseña del usuario
-            database='gestion_financiera'  # La base de datos a la que te quieres conectar
+            host='34.136.136.216',  
+            user='root',  
+            password='tt-finance1',  
+            database='gestion_financiera'  
         )
         if connection.is_connected():
             print("Conexión exitosa a la base de datos")
