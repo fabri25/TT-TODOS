@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import backgroundImage from '../assets/images/background.jpg';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import '../styles/Login.css';
+import '../styles/Register.css'; 
 
 const Login = () => {
   const navigate = useNavigate();
@@ -18,69 +18,80 @@ const Login = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     try {
-        const response = await axios.post('http://127.0.0.1:5000/api/login', 
-        {
-            email, 
-            password
-        }, 
-        {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        console.log(response.data);  // Verificar qué datos están regresando
-
-        if (response.status === 200 && response.data) {
-            console.log("Login exitoso");  // Confirmar que el login fue exitoso
-            navigate('/dashboard'); // Redirige al MainLayout después de iniciar sesión
-        } else {
-            setError('Correo o contraseña incorrectos');
+      const response = await axios.post('http://127.0.0.1:5000/api/login', 
+      {
+        email, 
+        password
+      }, 
+      {
+        headers: {
+          'Content-Type': 'application/json'
         }
-    } catch (err) {
-        console.error(err.response?.data?.error || 'Error en la conexión con el servidor');
-        setError('Correo o contraseña incorrectos');
-    }
-};
+      });
+      
+      console.log(response.data);  // Verificar qué datos están regresando
 
+      if (response.status === 200 && response.data) {
+        const { user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso } = response.data;
+
+        // Guardar el ID del usuario y el estado hasIncome en el almacenamiento local
+        localStorage.setItem('userID', user.ID_Usuario);
+        localStorage.setItem('hasIncome', hasIncome);
+
+        // Si se debe mostrar la ventana flotante de ingreso
+        if (showFloatingTabIncome) {
+          localStorage.setItem('showFloatingTabIncome', 'true');
+          localStorage.setItem('descripcionIngreso', descripcionIngreso);
+          localStorage.setItem('fechaUltimoIngreso', fechaUltimoIngreso);
+          console.log("Datos para FloatingTabIncome almacenados en localStorage");
+        } else {
+          localStorage.setItem('showFloatingTabIncome', 'false');
+        }
+
+        console.log("Login exitoso");  // Confirmar que el login fue exitoso
+        navigate('/dashboard'); // Redirige al Dashboard después de iniciar sesión
+      } else {
+        setError('Correo o contraseña incorrectos');
+      }
+    } catch (err) {
+      console.error(err.response?.data?.error || 'Error en la conexión con el servidor');
+      setError('Correo o contraseña incorrectos');
+    }
+  };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100" style={{ backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="card p-4" style={{ width: '20rem', background: 'rgba(0, 0, 0, 0.55)', borderRadius: '15px' }}>
-        <div className="text-center">
-          <i className="bi bi-person-circle mb-3" style={{ fontSize: '4rem', color: 'white' }}></i>
-          <p className="h mb-4 text-white">INICIA SESIÓN CON TU CUENTA</p>
-        </div>
+    <div className="register-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
+      <div className="form-container">
+        <p className="text-center">
+          <i className="bi bi-person-circle" style={{ fontSize: '5rem', color: 'white' }}></i>
+        </p>
+        <p className="text-center">INICIA SESIÓN CON TU CUENTA</p>
         <form onSubmit={handleLoginSubmit}>
-          <div className="form-group position-relative">
-            <span className="position-absolute" style={{ left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#000' }}>
-              <i className="bi bi-person"></i>
-            </span>
+          <div className="group-material-login">
             <input 
               type="email" 
-              className="form-control with-icon" 
-              placeholder=" " 
-              id="email" 
-              style={{ paddingLeft: '2.5rem' }} 
+              className="material-login-control" 
+              required 
+              maxLength="70" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)} 
             />
-            <label htmlFor="email" className="form-label">Correo</label>
-          </div>
-          <div className="form-group position-relative">
-            <span className="position-absolute" style={{ left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#000' }}>
-              <i className="bi bi-lock"></i>
-            </span>
+            <span className="highlight-login"></span>
+            <span className="bar-login"></span>
+            <label><i className="bi bi-envelope"></i> &nbsp; Correo</label>
+          </div><br />
+          <div className="group-material-login">
             <input 
               type="password" 
-              className="form-control with-icon" 
-              placeholder=" " 
-              id="password" 
-              style={{ paddingLeft: '2.5rem' }} 
+              className="material-login-control" 
+              required 
+              maxLength="70" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
             />
-            <label htmlFor="password" className="form-label">Contraseña</label>
+            <span className="highlight-login"></span>
+            <span className="bar-login"></span>
+            <label><i className="bi bi-lock"></i> &nbsp; Contraseña</label>
           </div>
           {error && <p className="text-danger">{error}</p>}
           <div className="text-center mb-3">
@@ -88,7 +99,13 @@ const Login = () => {
           </div>
           <div className="d-flex justify-content-between">
             <button type="submit" className="btn btn-outline-light">Ingresar al sistema</button>
-            <button type="button" className="btn btn-outline-light">Registro</button>
+            <button 
+              type="button" 
+              className="btn btn-outline-light" 
+              onClick={() => navigate('/register')}
+            >
+              Registro
+            </button>
           </div>
         </form>
       </div>

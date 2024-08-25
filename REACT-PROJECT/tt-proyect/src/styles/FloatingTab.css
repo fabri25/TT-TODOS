@@ -1,0 +1,109 @@
+.floating-tab-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro translúcido para el backdrop */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .floating-tab {
+    background-color: rgba(0, 0, 0, 0.85); /* Fondo oscuro similar al login y registro */
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px; /* Puedes ajustar el tamaño según sea necesario */
+    max-height: 70vh; /* Limita la altura máxima de la ventana */
+    overflow-y: auto; /* Habilita el desplazamiento vertical */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    color: white; /* Texto blanco para contraste */
+    z-index: 10000; /* Asegura que esté encima de todo */
+  }
+  
+  .floating-tab h4 {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .floating-tab .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .floating-tab .form-group label {
+    font-size: 14px;
+    margin-bottom: 5px;
+    display: block;
+  }
+  
+  .floating-tab .form-group select,
+  .floating-tab .form-group input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1); /* Fondo translúcido para inputs */
+    color: white; /* Texto blanco */
+  }
+  
+  .floating-tab .form-group input::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Placeholder blanco translúcido */
+  }
+  
+  .floating-tab .form-group input:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.2); /* Fondo ligeramente más opaco al enfocar */
+  }
+  
+  .floating-tab .form-group .input-group-text {
+    background-color: transparent; /* Fondo transparente para el símbolo de pesos */
+    border: none;
+    color: white;
+  }
+  
+  .floating-tab button {
+    width: 100%;
+    padding: 10px;
+    background-color: #2196f3; /* Color del botón */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .floating-tab button:hover {
+    background-color: #1976d2; /* Color más oscuro al pasar el cursor */
+  }
+  
+  .floating-tab select:focus {
+    outline: none;
+    border: none;
+    box-shadow: none;
+    background-color: rgba(0, 0, 0, 0.85); /* Fondo negro cuando está enfocado */
+  }
+  
+  /* Evita que el fondo sea interactivo */
+  body.modal-open {
+    overflow: hidden;
+  }
+  
+  .btn-remove {
+    background-color: #e74c3c; /* Color rojo para el botón de eliminar */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: block; /* Asegura que el botón ocupe toda la fila */
+    width: 100%; /* Ajusta el ancho del botón para que ocupe todo el espacio disponible */
+  }
+  
+  .btn-remove:hover {
+    background-color: #c0392b; /* Color más oscuro al pasar el cursor */
+  }

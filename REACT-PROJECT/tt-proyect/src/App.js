@@ -6,6 +6,7 @@ import EmailStep from './components/EmailStep';
 import VerificationStep from './components/VerificationStep';
 import NewPasswordStep from './components/NewPasswordStep';
 import NewLayout from './components/NewLayout'; // Importación correcta de NewLayout
+import Register from './components/Register'; // Importa el componente Register
 
 function App() {
   return (
@@ -16,12 +17,8 @@ function App() {
           <Route path="/recover-email" element={<EmailStep />} />
           <Route path="/recover-code" element={<VerificationStep />} />
           <Route path="/new-password" element={<NewPasswordStep />} />
-
-          {/* Ruta que utiliza el NewLayout después de iniciar sesión */}
-          <Route path="/dashboard" element={<NewLayout />}>
-            {/* Aquí puedes agregar más rutas o componentes */}
-            {/* <Route index element={<TuComponente />} /> */}
-          </Route>
+          <Route path="/register" element={<Register />} /> 
+          <Route path="/dashboard" element={<NewLayout />} />
         </Routes>
       </div>
     </Router>

@@ -1,9 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/NewLayout.css';
 import logo1 from '../assets/images/logo1.png';
+import FloatingTab from './FloatingTab';
+import FloatingTabIncome from './FloatingTabIncome'; // Importar el nuevo componente
+import IncomeChart from './IncomeChart'; // Importar el componente de la gráfica
 
 const NewLayout = () => {
-  const [activeMenu, setActiveMenu] = useState(null);
+  const [showFloatingTab, setShowFloatingTab] = useState(false);
+  const [showFloatingTabIncome, setShowFloatingTabIncome] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null); // <--- Agregar esta línea para inicializar activeMenu
+  const [descripcionIngreso, setDescripcionIngreso] = useState('');
+  const [fechaUltimoIngreso, setFechaUltimoIngreso] = useState('');
+  
+
+  useEffect(() => {
+    const hasIncome = localStorage.getItem('hasIncome') === 'true';
+    const showIncomeTab = localStorage.getItem('showFloatingTabIncome') === 'true';
+  
+    console.log("hasIncome:", hasIncome);
+    console.log("showIncomeTab:", showIncomeTab);
+  
+    if (!hasIncome) {
+      console.log("Mostrando FloatingTab para nuevos ingresos");
+      setShowFloatingTab(true); // Mostrar FloatingTab si no tiene ingresos
+    } else if (showIncomeTab) {
+      console.log("Mostrando FloatingTabIncome para actualización de ingresos");
+      setDescripcionIngreso(localStorage.getItem('descripcionIngreso') || '');
+      setFechaUltimoIngreso(localStorage.getItem('fechaUltimoIngreso') || '');
+      setShowFloatingTabIncome(true); // Mostrar FloatingTabIncome si corresponde
+    }
+  }, []);
+
+  const handleSave = () => {
+    console.log('Información guardada en FloatingTab');
+    setShowFloatingTab(false); // Oculta la pestaña flotante después de guardar
+  };
+
+  const handleSaveIncome = () => {
+    console.log('Información guardada en FloatingTabIncome');
+    setShowFloatingTabIncome(false); // Oculta la pestaña flotante después de guardar
+  };
 
   const toggleMenu = (menu) => {
     setActiveMenu(activeMenu === menu ? null : menu);
@@ -73,7 +109,14 @@ const NewLayout = () => {
           {/* Aquí puedes añadir contenido de la barra superior si es necesario */}
         </header>
         <main className="content">
-          {/* Aquí va el contenido principal que cambiará según la vista */}
+          {showFloatingTab && <FloatingTab onSave={handleSave} />} {/* Renderiza la pestaña flotante para nuevos ingresos */}
+          {showFloatingTabIncome && (
+            <FloatingTabIncome 
+              onSave={handleSaveIncome} 
+              descripcionIngreso={descripcionIngreso} 
+              fechaUltimoIngreso={fechaUltimoIngreso} 
+            />
+          )} {/* Renderiza la pestaña flotante para capturar ingresos según el periodo */}
         </main>
       </div>
     </div>
