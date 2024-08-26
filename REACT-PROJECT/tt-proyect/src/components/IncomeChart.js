@@ -10,7 +10,8 @@ Chart.register(ArcElement, Tooltip, Legend);
 
 const IncomeChart = () => {
   const [chartData, setChartData] = useState({});
-  const [showFilterModal, setShowFilterModal] = useState(false); // Estado para controlar la visibilidad de la ventana de filtros
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [currentFilters, setCurrentFilters] = useState({}); // Mantener los filtros actuales
 
   const fetchData = async (filters = {}) => {
     try {
@@ -22,7 +23,6 @@ const IncomeChart = () => {
 
       const incomeData = response.data;
 
-      // Transformar los datos para Chart.js
       const data = {
         labels: incomeData.map(item => item.Descripcion),
         datasets: [
@@ -45,11 +45,13 @@ const IncomeChart = () => {
   }, []);
 
   const handleApplyFilters = (filters) => {
+    setCurrentFilters(filters); // Guardar los filtros aplicados
     fetchData(filters); // Aplicar filtros y actualizar la gráfica
     setShowFilterModal(false); // Cerrar la ventana de filtros después de aplicar
   };
 
   const handleClearFilters = () => {
+    setCurrentFilters({}); // Restablecer los filtros
     fetchData(); // Restablecer los datos sin filtros
     setShowFilterModal(false); // Cerrar la ventana de filtros después de limpiar
   };
@@ -78,6 +80,7 @@ const IncomeChart = () => {
 
       {showFilterModal && (
         <FilterModal
+          initialFilters={currentFilters} // Pasar los filtros actuales como iniciales
           onApplyFilters={handleApplyFilters}
           onClearFilters={handleClearFilters}
           onClose={() => setShowFilterModal(false)}

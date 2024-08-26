@@ -1,17 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/FilterModal.css'; // Asegúrate de tener un archivo de estilos adecuado
 
-const FilterModal = ({ onApplyFilters, onClose }) => {
+const FilterModal = ({ initialFilters, onApplyFilters, onClose }) => {
   const [tipo, setTipo] = useState('');
-  const [esFijo, setEsFijo] = useState(''); 
-  const [tipoChecked, setTipoChecked] = useState(false); 
-  const [esFijoChecked, setEsFijoChecked] = useState(false); 
+  const [esFijo, setEsFijo] = useState('');
+  const [tipoChecked, setTipoChecked] = useState(false);
+  const [esFijoChecked, setEsFijoChecked] = useState(false);
+
+  useEffect(() => {
+    if (initialFilters) {
+      if (initialFilters.tipo) {
+        setTipo(initialFilters.tipo);
+        setTipoChecked(true);
+      }
+      if (initialFilters.esFijo) {
+        setEsFijo(initialFilters.esFijo);
+        setEsFijoChecked(true);
+      }
+    }
+  }, [initialFilters]);
 
   const handleClearFilters = () => {
     setTipo('');
-    setEsFijo(''); 
-    setTipoChecked(false); 
-    setEsFijoChecked(false); 
+    setEsFijo('');
+    setTipoChecked(false);
+    setEsFijoChecked(false);
   };
 
   const handleApply = () => {
@@ -40,7 +53,7 @@ const FilterModal = ({ onApplyFilters, onClose }) => {
               onChange={(e) => {
                 setTipoChecked(e.target.checked);
                 if (!e.target.checked) {
-                  setTipo(''); 
+                  setTipo('');
                 }
               }} 
             />
