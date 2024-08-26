@@ -1,0 +1,59 @@
+.income-chart-container {
+    margin-left: 20px; /* Ajustar según sea necesario */
+  }
+  
+  .income-chart-title {
+    text-align: left;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .income-chart-divider {
+    border: 0;
+    height: 1px;
+    background: #ccc;
+    margin-bottom: 20px;
+  }
+  
+  .income-chart-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra el contenido horizontalmente */
+    width: 300px; /* Asegura que el ancho del contenedor esté limitado */
+  }
+  
+  .income-chart-subtitle {
+    text-align: center;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+  }
+  
+  .income-chart {
+    text-align: center;
+    width: 100%; /* El ancho de la gráfica toma todo el contenedor */
+  }
+  
+  .income-chart canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+  .filter-button {
+    font-size: 12px; /* Tamaño de fuente más pequeño */
+    padding: 5px 10px; /* Ajusta el relleno para reducir el tamaño */
+    margin-top: 10px; /* Espacio adicional si es necesario */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .filter-button i {
+    margin-right: 5px; /* Espacio entre el ícono y el texto */
+  }
+  
+  .filter-button-container {
+    display: flex;
+    justify-content: flex-start; /* Mantiene el botón alineado a la izquierda */
+    margin-bottom: 15px;
+  }
+  
+  

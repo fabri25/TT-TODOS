@@ -116,7 +116,9 @@ const NewLayout = () => {
               descripcionIngreso={descripcionIngreso} 
               fechaUltimoIngreso={fechaUltimoIngreso} 
             />
-          )} {/* Renderiza la pestaña flotante para capturar ingresos según el periodo */}
+          )} 
+          {/* Renderiza la pestaña flotante para capturar ingresos según el periodo */}
+          {!showFloatingTab && !showFloatingTabIncome && <IncomeChart />} {/* Renderiza la gráfica cuando no hay ventanas flotantes */}
         </main>
       </div>
     </div>

@@ -242,6 +242,57 @@ def agregar_ingreso():
 
     return jsonify({"message": "Ingreso registrado exitosamente"}), 201
 
+# RUTA PARA OBTENER INGRESOS FILTRADOS
+@app.route('/api/income/filtered', methods=['POST'])
+def obtener_ingresos_filtrados():
+    data = request.json
+    user_id = data.get('user_id')
+    tipo = data.get('tipo')
+    es_fijo = data.get('esFijo')  # Recibir el filtro de fijo/no fijo
+    periodicidad = data.get('periodicidad')
+    fecha_inicio = data.get('fecha_inicio')
+    fecha_fin = data.get('fecha_fin')
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Construir la consulta SQL
+    query = """
+    SELECT Descripcion, SUM(Monto) as Monto
+    FROM Ingreso
+    WHERE ID_Usuario = %s
+    """
+    params = [user_id]
+
+    if tipo:
+        query += " AND Tipo = %s"
+        params.append(tipo)
+    
+    if es_fijo is not None:  # Manejar el filtro de fijo/no fijo
+        query += " AND EsFijo = %s"
+        params.append(1 if es_fijo == 'fijo' else 0)
+
+    if periodicidad:
+        query += " AND Periodicidad = %s"
+        params.append(periodicidad)
+
+    if fecha_inicio and fecha_fin:
+        query += " AND Fecha BETWEEN %s AND %s"
+        params.append(fecha_inicio)
+        params.append(fecha_fin)
+
+    query += " GROUP BY Descripcion"
+
+    cursor.execute(query, params)
+    ingresos = cursor.fetchall()
+
+    connection.close()
+
+    return jsonify(ingresos), 200
+
 
 
 
