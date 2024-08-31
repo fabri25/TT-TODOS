@@ -5,8 +5,12 @@ import Login from './components/Login';
 import EmailStep from './components/EmailStep';
 import VerificationStep from './components/VerificationStep';
 import NewPasswordStep from './components/NewPasswordStep';
-import NewLayout from './components/NewLayout'; // Importación correcta de NewLayout
-import Register from './components/Register'; // Importa el componente Register
+import NewLayout from './components/NewLayout';
+import Register from './components/Register';
+import PrivateRoute from './components/PrivateRoute';
+import EmailVerification from './components/EmailVerification';
+import IncomeChart from './components/IncomeChart';  // Importa el componente de IncomeChart
+import IncomeList from './components/IncomeList';    // Importa el componente de IncomeList
 
 function App() {
   return (
@@ -17,8 +21,17 @@ function App() {
           <Route path="/recover-email" element={<EmailStep />} />
           <Route path="/recover-code" element={<VerificationStep />} />
           <Route path="/new-password" element={<NewPasswordStep />} />
-          <Route path="/register" element={<Register />} /> 
-          <Route path="/dashboard" element={<NewLayout />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/email-verified" element={<EmailVerification />} />
+          {/* Rutas protegidas */}
+          <Route path="/dashboard" element={
+            <PrivateRoute>
+              <NewLayout />
+            </PrivateRoute>
+          }>
+            <Route path="inicio" element={<IncomeChart />} /> {/* Ruta protegida /dashboard/inicio */}
+            <Route path="ingresos" element={<IncomeList />} /> {/* Ruta protegida /dashboard/ingresos */}
+          </Route>
         </Routes>
       </div>
     </Router>

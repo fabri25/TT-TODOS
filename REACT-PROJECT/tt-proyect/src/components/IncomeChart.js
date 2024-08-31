@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Pie } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode'; // Importación correcta
 import '../styles/IncomeChart.css'; 
 import FilterModal from './FilterModal'; 
+import { useNavigate } from 'react-router-dom';
 
 // Registra los componentes necesarios
 Chart.register(ArcElement, Tooltip, Legend);
@@ -12,13 +14,36 @@ const IncomeChart = () => {
   const [chartData, setChartData] = useState({});
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({}); // Mantener los filtros actuales
+  const navigate = useNavigate();
 
   const fetchData = async (filters = {}) => {
     try {
-      const userID = localStorage.getItem('userID'); // Obtener el ID del usuario
-      const response = await axios.post('http://127.0.0.1:5000/api/income/filtered', {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/'); // Redirigir al login si no hay token
+        return;
+      }
+
+      const decodedToken = jwtDecode(token);
+      const userID = localStorage.getItem('userID');
+
+      // Verificar si el token ha expirado
+      if (decodedToken.exp * 1000 < Date.now()) {
+        localStorage.clear(); // Limpiar almacenamiento local si el token ha expirado
+        navigate('/'); // Redirigir al login
+        return;
+      }
+
+      const response = await axios.post('http://127.0.0.1:5000/api/income/filtered', 
+      {
         user_id: userID,
         ...filters, // Aplicar filtros si se proporcionan
+      }, 
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // Agregar el token en los headers
+          'Content-Type': 'application/json'
+        }
       });
 
       const incomeData = response.data;
@@ -37,11 +62,17 @@ const IncomeChart = () => {
       setChartData(data);
     } catch (error) {
       console.error('Error al cargar los datos de la gráfica:', error);
+      if (error.response && error.response.status === 401) {
+        // Si el backend devuelve un 401, el token es inválido o ha expirado
+        localStorage.clear();
+        navigate('/'); // Redirigir al login
+      }
     }
   };
 
   useEffect(() => {
     fetchData(); // Cargar datos inicialmente sin filtros
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleApplyFilters = (filters) => {

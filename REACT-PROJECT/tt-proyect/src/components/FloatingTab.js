@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';   // Asegúrate de importar jwtDecode correctamente
 import '../styles/FloatingTab.css';
+import { useNavigate } from 'react-router-dom';
 
 const FloatingTab = ({ onSave }) => {
   const [incomes, setIncomes] = useState([
     { frequency: '', amount: '', isFixed: false, type: '', description: '' },
   ]);
-
   const [addIncomeChecked, setAddIncomeChecked] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.body.classList.add('modal-open');
@@ -81,6 +83,22 @@ const FloatingTab = ({ onSave }) => {
   };
 
   const handleSave = async () => {
+    const token = localStorage.getItem('token'); // Obtener el token desde el localStorage
+    
+    if (!token) {
+      navigate('/'); // Redirigir al login si no hay token
+      return;
+    }
+
+    const decodedToken = jwtDecode(token);
+    
+    // Verificar si el token ha expirado
+    if (decodedToken.exp * 1000 < Date.now()) {
+      localStorage.clear(); // Limpiar almacenamiento local si el token ha expirado
+      navigate('/'); // Redirigir al login
+      return;
+    }
+
     const userID = localStorage.getItem('userID'); // Obtener el ID del usuario desde el localStorage
   
     // Validar ingresos antes de enviarlos
@@ -99,6 +117,7 @@ const FloatingTab = ({ onSave }) => {
             tipo: income.type,
           }, {
             headers: {
+              Authorization: `Bearer ${token}`, // Agregar el token en los headers
               'Content-Type': 'application/json'
             }
           });

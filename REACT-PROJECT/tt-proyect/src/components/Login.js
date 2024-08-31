@@ -32,7 +32,10 @@ const Login = () => {
       console.log(response.data);  // Verificar qué datos están regresando
 
       if (response.status === 200 && response.data) {
-        const { user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso } = response.data;
+        const { token, user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso } = response.data;
+
+        // Guardar el token en el almacenamiento local
+        localStorage.setItem('token', token);
 
         // Guardar el ID del usuario y el estado hasIncome en el almacenamiento local
         localStorage.setItem('userID', user.ID_Usuario);

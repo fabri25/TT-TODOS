@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';   // Importación de jwtDecode
 import '../styles/FloatingTab.css';
+import { useNavigate } from 'react-router-dom';
 
 const FloatingTabIncome = ({ onSave, descripcionIngreso, fechaUltimoIngreso }) => {
   const [amount, setAmount] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.body.classList.add('modal-open');
@@ -26,6 +29,22 @@ const FloatingTabIncome = ({ onSave, descripcionIngreso, fechaUltimoIngreso }) =
   };
 
   const handleSave = async () => {
+    const token = localStorage.getItem('token'); // Obtener el token desde el localStorage
+    
+    if (!token) {
+      navigate('/'); // Redirigir al login si no hay token
+      return;
+    }
+
+    const decodedToken = jwtDecode(token);
+    
+    // Verificar si el token ha expirado
+    if (decodedToken.exp * 1000 < Date.now()) {
+      localStorage.clear(); // Limpiar almacenamiento local si el token ha expirado
+      navigate('/'); // Redirigir al login
+      return;
+    }
+
     const userID = localStorage.getItem('userID'); // Obtener el ID del usuario desde el localStorage
 
     if (amount) {
@@ -37,6 +56,7 @@ const FloatingTabIncome = ({ onSave, descripcionIngreso, fechaUltimoIngreso }) =
           descripcion: descripcionIngreso,
         }, {
           headers: {
+            Authorization: `Bearer ${token}`, // Agregar el token en los headers
             'Content-Type': 'application/json'
           }
         });

@@ -1,13 +1,35 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, url_for
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+import secrets
 
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas y dominios
+
+# Configuración de claves secretas para Flask y JWT
+app.config['SECRET_KEY'] = secrets.token_urlsafe(16)  # Clave para Flask (session)
+app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(32)  # Clave para JWT
+
+# Configuración de Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Cambia esto según tu servidor de correo
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = 'fianzastt@gmail.com'  # Tu correo electrónico
+app.config['MAIL_PASSWORD'] = 'xbak zamo nzri thaj'  # Tu contraseña
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+# Inicializar Mail y JWT
+mail = Mail(app)
+jwt = JWTManager(app)
+
+# Serializador para la creación de tokens de verificación de email
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
 def create_connection():
     connection = None
@@ -23,11 +45,7 @@ def create_connection():
         print(f"Error al conectar a la base de datos: {e}")
         return None
 
-
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
-
-# FUNCION PARA INICIO DE SESION CON VALIDACION DE INGRESOS TAB
+# FUNCION PARA INICIO DE SESION CON VALIDACION DE INGRESOS TAB Y JWT
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
@@ -46,10 +64,22 @@ def login():
     user = cursor.fetchone()
     
     if user:
+        # Verificar que el usuario esté activo y haya verificado su correo
+        if user['Estado_ID'] != 1:
+            connection.close()
+            return jsonify({"error": "Tu cuenta no está activa. Contacta al soporte."}), 403
+        
+        if not user.get('email_verificado', False):
+            connection.close()
+            return jsonify({"error": "Debes verificar tu correo electrónico para iniciar sesión."}), 403
+
         # Obtener el ID del usuario
         user_id = user['ID_Usuario']
         print(f"ID del usuario: {user_id}")
         
+        # Crear token de acceso JWT
+        access_token = create_access_token(identity=user_id)
+
         # Verificar si el usuario tiene ingresos registrados
         query_income = """
         SELECT ID_Ingreso, Descripcion, Monto, Fecha, Periodicidad, EsFijo 
@@ -82,6 +112,7 @@ def login():
                 print("No tiene ingresos no fijos, no se mostrará ninguna ventana flotante.")
                 return jsonify({
                     "message": "Login exitoso",
+                    "token": access_token,  # Retornar el token en la respuesta
                     "user": user,
                     "hasIncome": hasIncome,
                     "showFloatingTabIncome": False,
@@ -120,6 +151,7 @@ def login():
                 print("Mostrar ventana flotante para actualizar ingreso según el periodo.")
                 return jsonify({
                     "message": "Login exitoso",
+                    "token": access_token,  # Retornar el token en la respuesta
                     "user": user,
                     "hasIncome": hasIncome,  # Indicar que tiene ingresos
                     "showFloatingTabIncome": True,
@@ -130,6 +162,7 @@ def login():
                 print("No se mostrará ninguna ventana flotante.")
                 return jsonify({
                     "message": "Login exitoso",
+                    "token": access_token,  # Retornar el token en la respuesta
                     "user": user,
                     "hasIncome": hasIncome,  # Indicar que tiene ingresos
                     "showFloatingTabIncome": False,
@@ -142,6 +175,7 @@ def login():
             print("No tiene ingresos registrados, mostrar ventana para capturar ingresos iniciales.")
             return jsonify({
                 "message": "Login exitoso",
+                "token": access_token,  # Retornar el token en la respuesta
                 "user": user,
                 "hasIncome": hasIncome,  # Indicar que no tiene ingresos
                 "showFloatingTabIncome": False,
@@ -152,14 +186,7 @@ def login():
         print("Correo o contraseña incorrectos.")
         return jsonify({"error": "Correo o contraseña incorrectos"}), 401
 
-
-
-
-
-    pass
-
-
-#FUNCION DE REGISTRO DE USUARIOS
+# FUNCION DE REGISTRO DE USUARIOS (No protegida)
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -179,31 +206,83 @@ def register():
     
     cursor = connection.cursor()
 
-    # Verificar si el usuario ya existe
-    query_check = "SELECT * FROM Usuario WHERE Email = %s"
-    cursor.execute(query_check, (email,))
-    existing_user = cursor.fetchone()
+    try:
+        # Verificar si el usuario ya existe
+        query_check = "SELECT * FROM Usuario WHERE Email = %s"
+        cursor.execute(query_check, (email,))
+        existing_user = cursor.fetchone()
 
-    if existing_user:
+        if existing_user:
+            return jsonify({"error": "El usuario ya existe"}), 409
+
+        # Insertar nuevo usuario con Estado_ID = 1
+        query = """
+        INSERT INTO Usuario (Nombre, Apellido_P, Apellido_M, Email, Contraseña, Estado_ID, Fecha_Cumple, Contacto)
+        VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
+        """
+        cursor.execute(query, (nombre, apellido_p, apellido_m, email, password, fecha_cumple, contacto))
+        connection.commit()
+
+        # Enviar correo de verificación
+        token = s.dumps(email, salt='email-confirm')
+        confirm_url = url_for('confirm_email', token=token, _external=True)
+        
+        # Configurar el cuerpo del mensaje en HTML
+        html_body = f"""
+        <p>Por favor, haz clic <a href="{confirm_url}">AQUI</a> para verificar tu correo electrónico.</p>
+        """
+        
+        msg = Message('Confirma tu correo electrónico', sender='your_email@gmail.com', recipients=[email])
+        msg.html = html_body  # Usar el cuerpo en HTML
+        mail.send(msg)
+
+        return jsonify({"message": "Usuario registrado exitosamente"}), 201
+
+    except mysql.connector.errors.IntegrityError as e:
         return jsonify({"error": "El usuario ya existe"}), 409
 
-    # Insertar nuevo usuario con Estado_ID = 1
-    query = """
-    INSERT INTO Usuario (Nombre, Apellido_P, Apellido_M, Email, Contraseña, Estado_ID, Fecha_Cumple, Contacto)
-    VALUES (%s, %s, %s, %s, %s, 1, %s, %s)
-    """
-    cursor.execute(query, (nombre, apellido_p, apellido_m, email, password, fecha_cumple, contacto))
+    finally:
+        connection.close()
+
+
+
+@app.route('/confirm_email/<token>', methods=['GET'])
+def confirm_email(token):
+    try:
+        email = s.loads(token, salt='email-confirm', max_age=3600)
+    except SignatureExpired:
+        return jsonify({"error": "El enlace de verificación ha expirado."}), 400
+    
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor()
+
+    # Actualizar el campo email_verificado a True
+    query = "UPDATE Usuario SET email_verificado = TRUE WHERE Email = %s"
+    cursor.execute(query, (email,))
     connection.commit()
 
     connection.close()
 
-    return jsonify({"message": "Usuario registrado exitosamente"}), 201
+    # Enviar una respuesta HTML para ser manejada por React
+    return '''
+    <html>
+        <body>
+            <script>
+                window.location.href = "http://localhost:3000/email-verified";
+            </script>
+        </body>
+    </html>
+    ''', 200
 
-#FUNCION PARA CAPTURAR INGRESOS POR PRIMERA VEZ O ACTUALIZAR INGRESOS EXISTENTES
+# FUNCION PARA CAPTURAR INGRESOS POR PRIMERA VEZ O ACTUALIZAR INGRESOS EXISTENTES
 @app.route('/api/ingreso', methods=['POST'])
+@jwt_required()
 def agregar_ingreso():
     data = request.json
-    id_usuario = data.get('id_usuario')
+    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
     monto = data.get('monto')
     descripcion = data.get('descripcion')
     fecha = datetime.now().date()  # Fecha actual
@@ -244,9 +323,10 @@ def agregar_ingreso():
 
 # RUTA PARA OBTENER INGRESOS FILTRADOS
 @app.route('/api/income/filtered', methods=['POST'])
+@jwt_required()
 def obtener_ingresos_filtrados():
+    user_id = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
     data = request.json
-    user_id = data.get('user_id')
     tipo = data.get('tipo')
     es_fijo = data.get('esFijo')  # Recibir el filtro de fijo/no fijo
     periodicidad = data.get('periodicidad')
@@ -293,7 +373,28 @@ def obtener_ingresos_filtrados():
 
     return jsonify(ingresos), 200
 
+@app.route('/api/income', methods=['GET'])  # Cambiar a singular
+@jwt_required()
+def get_incomes():
+    user_id = get_jwt_identity()
 
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+    query = """
+    SELECT Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha
+    FROM Ingreso
+    WHERE ID_Usuario = %s
+    ORDER BY Fecha DESC
+    """
+    cursor.execute(query, (user_id,))
+    incomes = cursor.fetchall()
+
+    connection.close()
+
+    return jsonify(incomes), 200
 
 
 if __name__ == '__main__':

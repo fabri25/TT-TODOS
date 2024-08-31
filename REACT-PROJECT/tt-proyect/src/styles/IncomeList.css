@@ -1,0 +1,20 @@
+/* IncomeList.css */
+.income-list-container {
+    padding: 20px;
+}
+
+.income-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.income-table th,
+.income-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.income-table th {
+    background-color: #f2f2f2;
+}

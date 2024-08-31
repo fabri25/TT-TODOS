@@ -61,7 +61,7 @@
 }
   
 .nav-menu li.active > .dropdown-menu-button {
-    background-color: #1E6DC7; /* Cambia el color de fondo cuando está activo */
+    background-color: #1E6DC7;
 }
   
 .nav-menu a {
@@ -73,7 +73,7 @@
 }
   
 .nav-menu a i {
-    margin-right: 15px; /* Aumenta el espacio entre el ícono y el texto */
+    margin-right: 15px;
 }
   
 .dropdown-menu-button {
@@ -85,9 +85,12 @@
 }
   
 .dropdown-menu {
-    display: none; /* Oculto por defecto */
+    display: none;
     padding-left: 20px;
     background-color: #2d3945;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease-in-out;
 }
   
 .dropdown-menu li {
@@ -107,7 +110,7 @@
   
 .top-bar {
     background-color: #404040;
-    height: 55px; 
+    height: 55px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -122,37 +125,34 @@
     background-color: #f4f4f4;
 }
   
-/* Manejo del despliegue de los submenús con animación */
 .menu-item.active .dropdown-menu {
     display: block;
-    animation: slideDown 0.3s ease-in-out;
+    max-height: 500px;
 }
-  
+
 @keyframes slideDown {
     from {
         max-height: 0;
         opacity: 0;
     }
     to {
-        max-height: 500px; /* Ajusta según sea necesario */
+        max-height: 500px;
         opacity: 1;
     }
 }
   
-/* Asegúrate de que las demás secciones se ajusten correctamente */
 .nav-menu .menu-item {
     padding: 10px 0;
 }
 
-/* Estilos adicionales que vinieron del HTML */
 .nav-lateral-list-menu ul li {
     margin: 0;
     padding: 0;
     display: block;
 }
+
 .nav-lateral-list-menu ul li ul {
     background-color: rgb(43, 61, 81);
-    display: none;
 }
 
 .nav-lateral-list-menu ul li.active ul {
