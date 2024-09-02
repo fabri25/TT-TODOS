@@ -373,9 +373,10 @@ def obtener_ingresos_filtrados():
 
     return jsonify(ingresos), 200
 
-@app.route('/api/income', methods=['GET'])  # Cambiar a singular
+# RUTA PARA OBTENER INGRESOS PARA TABLA
+@app.route('/api/user/incomes', methods=['GET'])
 @jwt_required()
-def get_incomes():
+def get_user_incomes():
     user_id = get_jwt_identity()
 
     connection = create_connection()
@@ -384,7 +385,7 @@ def get_incomes():
 
     cursor = connection.cursor(dictionary=True)
     query = """
-    SELECT Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha
+    SELECT ID_Ingreso, Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha
     FROM Ingreso
     WHERE ID_Usuario = %s
     ORDER BY Fecha DESC
@@ -395,6 +396,100 @@ def get_incomes():
     connection.close()
 
     return jsonify(incomes), 200
+
+# RUTA PARA ELIMINAR INGRESOS 
+@app.route('/api/user/incomes/<int:income_id>', methods=['DELETE'])
+@jwt_required()
+def delete_income(income_id):
+    user_id = get_jwt_identity()
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Obtener la información del ingreso antes de eliminarlo
+    query_select = "SELECT * FROM Ingreso WHERE ID_Ingreso = %s AND ID_Usuario = %s"
+    cursor.execute(query_select, (income_id, user_id))
+    income = cursor.fetchone()
+
+    if not income:
+        connection.close()
+        return jsonify({"error": "Ingreso no encontrado"}), 404
+
+    # Loguear la información del ingreso a eliminar
+    print(f"Ingreso a eliminar: {income}")
+
+    # Proceder a eliminar el ingreso
+    query_delete = "DELETE FROM Ingreso WHERE ID_Ingreso = %s AND ID_Usuario = %s"
+    cursor.execute(query_delete, (income_id, user_id))
+    connection.commit()
+
+    connection.close()
+
+    return jsonify({"message": "Ingreso eliminado exitosamente."}), 200
+
+
+@app.route('/api/user/update_income/<int:id_ingreso>', methods=['PUT'])
+@jwt_required()
+def update_income(id_ingreso):
+    user_id = get_jwt_identity()
+    data = request.json
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor()
+
+    # Actualizar el ingreso con los nuevos datos
+    query = """
+    UPDATE Ingreso
+    SET Descripcion = %s, Monto = %s, Periodicidad = %s, EsFijo = %s, Tipo = %s
+    WHERE ID_Ingreso = %s AND ID_Usuario = %s
+    """
+    cursor.execute(query, (
+        data.get('Descripcion'),
+        data.get('Monto'),
+        data.get('Periodicidad'),
+        data.get('EsFijo'),
+        data.get('Tipo'),
+        id_ingreso,
+        user_id
+    ))
+    
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Ingreso actualizado exitosamente."}), 200
+
+
+
+@app.route('/api/user/income/<int:id_ingreso>', methods=['GET'])  # Nota: He cambiado "incomes" a "income"
+@jwt_required()
+def get_income_by_id(id_ingreso):
+    user_id = get_jwt_identity()
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+    query = """
+    SELECT ID_Ingreso, Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha
+    FROM Ingreso
+    WHERE ID_Ingreso = %s AND ID_Usuario = %s
+    """
+    cursor.execute(query, (id_ingreso, user_id))
+    income = cursor.fetchone()
+
+    connection.close()
+
+    if income:
+        return jsonify(income), 200
+    else:
+        return jsonify({"error": "Ingreso no encontrado"}), 404
 
 
 if __name__ == '__main__':

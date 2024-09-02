@@ -11,6 +11,8 @@ import PrivateRoute from './components/PrivateRoute';
 import EmailVerification from './components/EmailVerification';
 import IncomeChart from './components/IncomeChart';  // Importa el componente de IncomeChart
 import IncomeList from './components/IncomeList';    // Importa el componente de IncomeList
+import EditIncome from './components/EditIncome';  // Importa el componente de edición de ingresos
+
 
 function App() {
   return (
@@ -29,8 +31,9 @@ function App() {
               <NewLayout />
             </PrivateRoute>
           }>
-            <Route path="inicio" element={<IncomeChart />} /> {/* Ruta protegida /dashboard/inicio */}
-            <Route path="ingresos" element={<IncomeList />} /> {/* Ruta protegida /dashboard/ingresos */}
+            <Route path="inicio" element={<IncomeChart />} /> 
+            <Route path="ingresos" element={<IncomeList />} />
+            <Route path="/dashboard/edit-income/:id" element={<EditIncome />} />
           </Route>
         </Routes>
       </div>

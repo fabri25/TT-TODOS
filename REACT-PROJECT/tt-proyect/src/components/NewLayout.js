@@ -40,7 +40,7 @@ const NewLayout = () => {
       setFechaUltimoIngreso(localStorage.getItem('fechaUltimoIngreso') || '');
       setShowFloatingTabIncome(true);
     }
-  }, [navigate]); // Incluir `navigate` en las dependencias
+  }, [navigate]);
 
   const handleSave = () => {
     setShowFloatingTab(false);
