@@ -19,23 +19,26 @@ const NewLayout = () => {
     if (token) {
       const decodedToken = jwtDecode(token);
       const currentTime = Date.now() / 1000;
-  
+
       if (decodedToken.exp < currentTime) {
         localStorage.removeItem('token');
         navigate('/');
       } else if (window.location.pathname === '/dashboard') {
-        navigate('/dashboard/inicio'); 
+        navigate('/dashboard/inicio');
       }
     } else {
       navigate('/');
     }
-  
+
+    // Cargar los valores iniciales desde el localStorage
     const hasIncome = localStorage.getItem('hasIncome') === 'true';
     const showIncomeTab = localStorage.getItem('showFloatingTabIncome') === 'true';
-  
+
+    // Si no tiene ingresos, mostrar la ventana flotante para registrar el ingreso inicial
     if (!hasIncome) {
       setShowFloatingTab(true);
     } else if (showIncomeTab) {
+      // Si se necesita actualizar ingresos periódicos
       setDescripcionIngreso(localStorage.getItem('descripcionIngreso') || '');
       setFechaUltimoIngreso(localStorage.getItem('fechaUltimoIngreso') || '');
       setShowFloatingTabIncome(true);
@@ -44,10 +47,17 @@ const NewLayout = () => {
 
   const handleSave = () => {
     setShowFloatingTab(false);
+
+    // Actualizar el estado de ingresos en localStorage una vez que se registra un ingreso
+    localStorage.setItem('hasIncome', 'true');
+    localStorage.removeItem('showFloatingTab'); // Eliminar cualquier valor previo
   };
 
   const handleSaveIncome = () => {
     setShowFloatingTabIncome(false);
+
+    // Actualizar el estado de la ventana flotante de ingreso periódico
+    localStorage.setItem('showFloatingTabIncome', 'false');
   };
 
   const toggleMenu = (menu) => {
