@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';   // Asegúrate de importar jwtDecode correctamente
+import { jwtDecode } from 'jwt-decode';  
 import '../styles/FloatingTab.css';
 import { useNavigate } from 'react-router-dom';
 
 const FloatingTab = ({ onSave }) => {
   const [incomes, setIncomes] = useState([
-    { frequency: '', amount: '', isFixed: false, type: '', description: '' },
+    { frequency: '', amount: '', isFixed: false, type: '', description: '', date: '' },
   ]);
-  const [addIncomeChecked, setAddIncomeChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +49,12 @@ const FloatingTab = ({ onSave }) => {
     setIncomes(updatedIncomes);
   };
 
+  const handleDateChange = (index, e) => {
+    const updatedIncomes = [...incomes];
+    updatedIncomes[index].date = e.target.value;
+    setIncomes(updatedIncomes);
+  };
+
   const formatAmount = (amount) => {
     if (!amount) return '';
     return new Intl.NumberFormat('es-MX', {
@@ -63,7 +68,7 @@ const FloatingTab = ({ onSave }) => {
     if (incomes.length < 5) {
       setIncomes([
         ...incomes,
-        { frequency: '', amount: '', isFixed: false, type: '', description: '' },
+        { frequency: '', amount: '', isFixed: false, type: '', description: '', date: '' },
       ]);
     }
   };
@@ -75,38 +80,30 @@ const FloatingTab = ({ onSave }) => {
     }
   };
 
-  const handleAddIncomeChange = (e) => {
-    if (e.target.checked) {
-      handleAddIncome();
-      setAddIncomeChecked(false);
-    }
-  };
+  
 
   const handleSave = async () => {
-    const token = localStorage.getItem('token'); // Obtener el token desde el localStorage
+    const token = localStorage.getItem('token'); 
     
     if (!token) {
-      navigate('/'); // Redirigir al login si no hay token
+      navigate('/'); 
       return;
     }
 
     const decodedToken = jwtDecode(token);
     
-    // Verificar si el token ha expirado
     if (decodedToken.exp * 1000 < Date.now()) {
-      localStorage.clear(); // Limpiar almacenamiento local si el token ha expirado
-      navigate('/'); // Redirigir al login
+      localStorage.clear(); 
+      navigate('/');
       return;
     }
 
-    const userID = localStorage.getItem('userID'); // Obtener el ID del usuario desde el localStorage
+    const userID = localStorage.getItem('userID');
   
-    // Validar ingresos antes de enviarlos
-    const validIncomes = incomes.filter(income => income.frequency && income.amount && income.type && income.description);
+    const validIncomes = incomes.filter(income => income.frequency && income.amount && income.type && income.description && income.date);
     
     if (validIncomes.length > 0) {
       try {
-        // Realizar una solicitud POST para cada ingreso válido
         for (const income of validIncomes) {
           await axios.post('http://127.0.0.1:5000/api/ingreso', {
             id_usuario: userID,
@@ -115,15 +112,15 @@ const FloatingTab = ({ onSave }) => {
             descripcion: income.description,
             esFijo: income.isFixed,
             tipo: income.type,
+            fecha: income.date,  // Enviar la fecha seleccionada
           }, {
             headers: {
-              Authorization: `Bearer ${token}`, // Agregar el token en los headers
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });
         }
   
-        // Lógica adicional en caso de éxito
         if (onSave) {
           onSave(validIncomes);
         }
@@ -143,7 +140,6 @@ const FloatingTab = ({ onSave }) => {
         <div className="form-group">
           {incomes.map((income, index) => (
             <div key={index} className="income-entry">
-              <br></br>
               <p>Ingreso {index + 1}</p>
               <select
                 id={`frequency-${index}`}
@@ -156,6 +152,15 @@ const FloatingTab = ({ onSave }) => {
                 <option value="quincenal">Quincenal</option>
                 <option value="mensual">Mensual</option>
               </select>
+              <br></br><br></br>
+
+              <input
+                type="date"
+                id={`date-${index}`}
+                value={income.date}
+                onChange={(e) => handleDateChange(index, e)}
+                className="form-control"
+              />
 
               <div className="form-group input-group">
                 <span className="input-group-text"></span>
@@ -216,13 +221,13 @@ const FloatingTab = ({ onSave }) => {
 
         {incomes.length < 5 && (
           <div className="form-group">
-            <input
-              type="checkbox"
-              id="addAnotherIncome"
-              checked={addIncomeChecked}
-              onChange={handleAddIncomeChange}
-            />
-            <label htmlFor="addAnotherIncome">¿Tienes otro ingreso?</label>
+            <button
+              type="button"
+              className="btn-add-income"  // Clases CSS para el nuevo botón verde
+              onClick={handleAddIncome}
+            >
+              Agregar otro ingreso
+            </button>
           </div>
         )}
 

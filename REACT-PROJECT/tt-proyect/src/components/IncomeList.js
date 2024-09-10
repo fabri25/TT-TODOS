@@ -82,7 +82,7 @@ const IncomeList = () => {
                             <td>{ingreso.Periodicidad}</td>
                             <td>{ingreso.EsFijo ? 'Sí' : 'No'}</td>
                             <td>{ingreso.Tipo}</td>
-                            <td>{new Date(ingreso.Fecha).toLocaleDateString()}</td>
+                            <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
                             <td>
                                 <button className="btn btn-warning btn-sm" onClick={() => handleEdit(ingreso.ID_Ingreso)}>
                                     <i className="bi bi-pencil-square"></i>

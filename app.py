@@ -285,7 +285,9 @@ def agregar_ingreso():
     id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
     monto = data.get('monto')
     descripcion = data.get('descripcion')
-    fecha = datetime.now().date()  # Fecha actual
+    
+    # Usar la fecha proporcionada o la fecha actual si no se proporciona
+    fecha = data.get('fecha', datetime.now().date())  
 
     connection = create_connection()
     if connection is None:
@@ -293,7 +295,7 @@ def agregar_ingreso():
     
     cursor = connection.cursor()
 
-    # Verificar si es una actualización de ingreso existente
+    # Verificar si es una actualización de ingreso existente o es uno nuevo
     if 'periodicidad' in data and 'esFijo' in data and 'tipo' in data:
         # Es un nuevo ingreso (Primera vez)
         periodicidad = data.get('periodicidad')
