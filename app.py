@@ -285,9 +285,7 @@ def agregar_ingreso():
     id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
     monto = data.get('monto')
     descripcion = data.get('descripcion')
-    
-    # Usar la fecha proporcionada o la fecha actual si no se proporciona
-    fecha = data.get('fecha', datetime.now().date())  
+    fecha = datetime.now().date()  # Fecha actual
 
     connection = create_connection()
     if connection is None:
@@ -295,7 +293,7 @@ def agregar_ingreso():
     
     cursor = connection.cursor()
 
-    # Verificar si es una actualización de ingreso existente o es uno nuevo
+    # Verificar si es una actualización de ingreso existente
     if 'periodicidad' in data and 'esFijo' in data and 'tipo' in data:
         # Es un nuevo ingreso (Primera vez)
         periodicidad = data.get('periodicidad')
@@ -445,10 +443,10 @@ def update_income(id_ingreso):
 
     cursor = connection.cursor()
 
-    # Actualizar el ingreso con los nuevos datos
+    # Actualizar el ingreso con los nuevos datos, incluyendo la fecha
     query = """
     UPDATE Ingreso
-    SET Descripcion = %s, Monto = %s, Periodicidad = %s, EsFijo = %s, Tipo = %s
+    SET Descripcion = %s, Monto = %s, Periodicidad = %s, EsFijo = %s, Tipo = %s, Fecha = %s
     WHERE ID_Ingreso = %s AND ID_Usuario = %s
     """
     cursor.execute(query, (
@@ -457,6 +455,7 @@ def update_income(id_ingreso):
         data.get('Periodicidad'),
         data.get('EsFijo'),
         data.get('Tipo'),
+        data.get('Fecha'),  # Asegúrate de que la fecha se esté enviando en el formato correcto (YYYY-MM-DD)
         id_ingreso,
         user_id
     ))
@@ -468,7 +467,8 @@ def update_income(id_ingreso):
 
 
 
-@app.route('/api/user/income/<int:id_ingreso>', methods=['GET'])  # Nota: He cambiado "incomes" a "income"
+
+@app.route('/api/user/income/<int:id_ingreso>', methods=['GET'])
 @jwt_required()
 def get_income_by_id(id_ingreso):
     user_id = get_jwt_identity()
@@ -492,6 +492,7 @@ def get_income_by_id(id_ingreso):
         return jsonify(income), 200
     else:
         return jsonify({"error": "Ingreso no encontrado"}), 404
+
 
 
 if __name__ == '__main__':

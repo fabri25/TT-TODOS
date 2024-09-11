@@ -14,7 +14,7 @@ const EditIncome = () => {
         Periodicidad: '',
         EsFijo: false,
         Tipo: '',
-        Fecha: ''
+        Fecha: '' // Aquí manejamos la fecha como una cadena
     });
     const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar la ventana modal
     const [notification, setNotification] = useState({ show: false, type: '', message: '' }); // Estado para manejar la notificación
@@ -26,19 +26,20 @@ const EditIncome = () => {
                 const response = await axios.get(`http://127.0.0.1:5000/api/user/income/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-
+    
                 const fetchedIncome = {
                     ...response.data,
                     EsFijo: response.data.EsFijo === 1 || response.data.EsFijo === true,
                     Monto: formatAmount(response.data.Monto),
+                    Fecha: new Date(response.data.Fecha).toISOString().split('T')[0], // Convertir la fecha correctamente
                 };
-
+    
                 setIncomeData(fetchedIncome);
             } catch (error) {
                 console.error("Error al obtener los datos del ingreso", error);
             }
         };
-
+    
         fetchIncomeData();
     }, [id]);
 
@@ -129,6 +130,19 @@ const EditIncome = () => {
                         name="Monto"
                         value={incomeData.Monto}
                         onChange={handleAmountChange}
+                        className="form-control"
+                        required
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="Fecha">Fecha</label>
+                    <br /><br />
+                    <input
+                        type="date"
+                        id="Fecha"
+                        name="Fecha"
+                        value={incomeData.Fecha} // La fecha debe aparecer aquí en formato YYYY-MM-DD
+                        onChange={handleInputChange}
                         className="form-control"
                         required
                     />
