@@ -277,7 +277,6 @@ def confirm_email(token):
     </html>
     ''', 200
 
-# FUNCION PARA CAPTURAR INGRESOS POR PRIMERA VEZ O ACTUALIZAR INGRESOS EXISTENTES
 @app.route('/api/ingreso', methods=['POST'])
 @jwt_required()
 def agregar_ingreso():
@@ -287,39 +286,55 @@ def agregar_ingreso():
     descripcion = data.get('descripcion')
     fecha = datetime.now().date()  # Fecha actual
 
+    # Mensaje para verificar los datos recibidos
+    print(f"Datos recibidos para agregar ingreso: {data}")
+    print(f"ID Usuario: {id_usuario}, Descripción: {descripcion}, Monto: {monto}, Fecha: {fecha}")
+
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
     
     cursor = connection.cursor()
 
-    # Verificar si es una actualización de ingreso existente
-    if 'periodicidad' in data and 'esFijo' in data and 'tipo' in data:
-        # Es un nuevo ingreso (Primera vez)
+    # Verificar si llega el campo es_periodico, si no llega, lo tomamos como True por defecto
+    es_periodico = data.get('es_periodico', True)
+
+    # Si es_periodico es False, entonces Periodicidad y EsFijo deben ser NULL
+    if not es_periodico:
+        periodicidad = None
+        es_fijo = None
+    else:
+        # Si es_periodico es True, extraemos los valores de periodicidad y esFijo
         periodicidad = data.get('periodicidad')
         es_fijo = data.get('esFijo')
-        tipo = data.get('tipo')
-        
+
+    tipo = data.get('tipo')
+
+    # Verificar si es un nuevo ingreso (Primera vez)
+    if descripcion and monto and tipo:
+        print(f"Datos para insertar: Periodicidad: {periodicidad}, EsFijo: {es_fijo}, Tipo: {tipo}, EsPeriodico: {es_periodico}")
+
         query = """
         INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (descripcion, monto, fecha, tipo, id_usuario, periodicidad, es_fijo))
+        cursor.execute(query, (descripcion, monto, fecha, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
     else:
-        # Es una actualización de un ingreso existente
-        query = """
-        INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
-        SELECT Descripcion, %s, %s, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico
-        FROM Ingreso
-        WHERE ID_Usuario = %s AND Descripcion = %s
-        LIMIT 1
-        """
-        cursor.execute(query, (monto, fecha, id_usuario, descripcion))
-    
+        # Si alguno de los valores requeridos no está, devolvemos un error
+        return jsonify({"error": "Faltan datos obligatorios como descripción, monto o tipo"}), 400
+
     connection.commit()
+    
+    # Verificar si el ingreso se insertó correctamente
+    print(f"Ingreso registrado para el usuario {id_usuario} con descripción {descripcion} y monto {monto}")
+    
     connection.close()
 
     return jsonify({"message": "Ingreso registrado exitosamente"}), 201
+
+
+
+
 
 # RUTA PARA OBTENER INGRESOS FILTRADOS
 @app.route('/api/income/filtered', methods=['POST'])
@@ -385,7 +400,7 @@ def get_user_incomes():
 
     cursor = connection.cursor(dictionary=True)
     query = """
-    SELECT ID_Ingreso, Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha
+    SELECT ID_Ingreso, Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha, EsPeriodico
     FROM Ingreso
     WHERE ID_Usuario = %s
     ORDER BY Fecha DESC
@@ -393,9 +408,14 @@ def get_user_incomes():
     cursor.execute(query, (user_id,))
     incomes = cursor.fetchall()
 
+    # Mapear el valor de EsPeriodico a "Periódico" o "Único"
+    for income in incomes:
+        income['TipoPeriodico'] = 'Periódico' if income['EsPeriodico'] else 'Único'
+
     connection.close()
 
     return jsonify(incomes), 200
+
 
 # RUTA PARA ELIMINAR INGRESOS 
 @app.route('/api/user/incomes/<int:income_id>', methods=['DELETE'])

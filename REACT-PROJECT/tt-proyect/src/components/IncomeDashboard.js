@@ -6,7 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
 import FilterModal from './FilterModal'; // Importamos el modal de filtros
-import AddIncomeModal from './AddIncomeModal'; // Importamos el modal para añadir ingresos
+import AddIncomeModal from './AddIncomeModal';
 import '../styles/IncomeDashboard.css';
 
 // Registra los componentes de Chart.js
@@ -30,21 +30,21 @@ const IncomeDashboard = () => {
         navigate('/');
         return;
       }
-  
+
       const decodedToken = jwtDecode(token);
       const userID = localStorage.getItem('userID');
-  
+
       if (decodedToken.exp * 1000 < Date.now()) {
         localStorage.clear();
         navigate('/');
         return;
       }
-  
+
       const response = await axios.get('http://127.0.0.1:5000/api/user/incomes', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setIngresos(response.data);
-  
+
       const chartResponse = await axios.post('http://127.0.0.1:5000/api/income/filtered', 
       {
         user_id: userID,
@@ -56,7 +56,7 @@ const IncomeDashboard = () => {
           'Content-Type': 'application/json'
         }
       });
-  
+
       const incomeData = chartResponse.data;
       const data = {
         labels: incomeData.map(item => item.Descripcion),
@@ -122,6 +122,7 @@ const IncomeDashboard = () => {
     fetchIngresos(); // Restablecer los datos sin filtros
     setShowFilterModal(false);
   };
+  
 
   return (
     <div className="income-dashboard-container">
@@ -129,31 +130,33 @@ const IncomeDashboard = () => {
 
       {/* Sección de la gráfica */}
       <div className="income-chart-section">
-        <div className="button-group">
-          <button 
-            className="btn btn-outline-secondary filter-button" 
-            onClick={() => setShowFilterModal(true)}
-          >
-            <i className="bi bi-filter"></i> Filtrar
-          </button>
+        <div className="chart-and-buttons">
+          <div className="income-chart">
+            {chartData && chartData.labels && chartData.labels.length > 0 ? (
+              <Pie data={chartData} width={300} height={300} />
+            ) : (
+              <p>No hay datos disponibles para mostrar.</p>
+            )}
+          </div>
+          <div className="button-group">
+            <button 
+              className="btn btn-outline-secondary filter-button" 
+              onClick={() => setShowFilterModal(true)}
+            >
+              <i className="bi bi-filter"></i> Filtrar
+            </button>
 
-          {/* Botón para agregar ingresos */}
-          <button
-            className="btn btn-primary add-income-button" // Nueva clase para agregar estilos
-            onClick={() => setShowAddIncomeModal(true)} // Mostrar el modal para agregar ingreso
-          >
-            <i className="bi bi-plus"></i> Agregar Ingreso
-          </button>
-        </div>
-
-        <div className="income-chart">
-          {chartData && chartData.labels && chartData.labels.length > 0 ? (
-            <Pie data={chartData} width={300} height={300} />
-          ) : (
-            <p>No hay datos disponibles para mostrar.</p>
-          )}
+            {/* Botón para agregar ingresos */}
+            <button
+              className="btn btn-primary add-income-button"
+              onClick={() => navigate('/dashboard/add-income')}
+            >
+              <i className="bi bi-plus"></i> Agregar Ingreso
+            </button>
+          </div>
         </div>
       </div>
+
 
       {/* Sección de la tabla de ingresos */}
       <div className="income-list-section">
@@ -166,6 +169,7 @@ const IncomeDashboard = () => {
               <th>Es Fijo</th>
               <th>Tipo</th>
               <th>Fecha</th>
+              <th>Periódico/Único</th> {/* Nueva columna */}
               <th>Editar</th>
               <th>Eliminar</th>
             </tr>
@@ -179,6 +183,7 @@ const IncomeDashboard = () => {
                 <td>{ingreso.EsFijo ? 'Sí' : 'No'}</td>
                 <td>{ingreso.Tipo}</td>
                 <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
+                <td>{ingreso.TipoPeriodico}</td> {/* Mostrar "Periódico" o "Único" */}
                 <td>
                   <button className="btn btn-warning btn-sm" onClick={() => handleEdit(ingreso.ID_Ingreso)}>
                     <i className="bi bi-pencil-square"></i>

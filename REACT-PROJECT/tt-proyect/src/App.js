@@ -10,9 +10,10 @@ import Register from './components/Register';
 import PrivateRoute from './components/PrivateRoute';
 import EmailVerification from './components/EmailVerification';
 import IncomeChart from './components/IncomeChart';  // Importa el componente de IncomeChart
-
 import EditIncome from './components/EditIncome';  // Importa el componente de edición de ingresos
 import IncomeDashboard from './components/IncomeDashboard';
+import AddIncome from './components/AddIncomeModal';  // Componente de agregar ingreso
+
 
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
             <Route path="inicio" element={<IncomeChart />} /> 
             <Route path="ingresos" element={<IncomeDashboard />} /> {/* Nuevo componente */}
             <Route path="/dashboard/edit-income/:id" element={<EditIncome />} />
+            <Route path="/dashboard/add-income" element={<AddIncome />} />  
           </Route>
         </Routes>
       </div>
