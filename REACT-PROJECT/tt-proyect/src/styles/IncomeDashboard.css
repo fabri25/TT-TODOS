@@ -88,3 +88,15 @@
 .filter-button {
   margin-bottom: 10px;
 }
+
+.chart-and-calendar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* Alinea los elementos en la parte superior */
+  gap: 20px; /* Espacio entre la gráfica y el calendario */
+}
+
+.income-calendar {
+  flex: 1;
+  margin-left: 200px; /* Añade un margen izquierdo al calendario para separarlo aún más */
+}

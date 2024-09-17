@@ -5,24 +5,28 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
-import FilterModal from './FilterModal'; // Importamos el modal de filtros
+import FilterModal from './FilterModal';
 import AddIncomeModal from './AddIncomeModal';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/IncomeDashboard.css';
 
 // Registra los componentes de Chart.js
 Chart.register(ArcElement, Tooltip, Legend);
 
+const localizer = momentLocalizer(moment);
+
 const IncomeDashboard = () => {
   const [ingresos, setIngresos] = useState([]);
-  const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar la ventana modal
-  const [incomeToDelete, setIncomeToDelete] = useState(null); // Estado para eliminar un ingreso
+  const [showModal, setShowModal] = useState(false);
+  const [incomeToDelete, setIncomeToDelete] = useState(null);
   const [chartData, setChartData] = useState({});
-  const [showFilterModal, setShowFilterModal] = useState(false); // Estado para mostrar el modal de filtros
-  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false); // Estado para mostrar el modal de agregar ingreso
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
   const navigate = useNavigate();
 
-  // Función para obtener los ingresos
   const fetchIngresos = useCallback(async (filters = {}) => {
     try {
       const token = localStorage.getItem('token');
@@ -72,13 +76,12 @@ const IncomeDashboard = () => {
     } catch (error) {
       console.error('Error al obtener los datos', error);
     }
-  }, [navigate]); // Ahora useCallback evitará la recreación de la función
-  
+  }, [navigate]);
+
   useEffect(() => {
     fetchIngresos();
   }, [fetchIngresos]);
 
-  // Función para eliminar un ingreso
   const handleDelete = (id) => {
     setIncomeToDelete(id);
     setShowModal(true);
@@ -105,32 +108,30 @@ const IncomeDashboard = () => {
     setIncomeToDelete(null);
   };
 
-  // Función para editar un ingreso
   const handleEdit = (idIngreso) => {
     navigate(`/dashboard/edit-income/${idIngreso}`);
   };
 
-  // Funciones para manejar el modal de filtros
   const handleApplyFilters = (filters) => {
     setCurrentFilters(filters);
-    fetchIngresos(filters); // Aplicar filtros y actualizar los datos
+    fetchIngresos(filters);
     setShowFilterModal(false);
   };
 
   const handleClearFilters = () => {
     setCurrentFilters({});
-    fetchIngresos(); // Restablecer los datos sin filtros
+    fetchIngresos();
     setShowFilterModal(false);
   };
-  
 
   return (
     <div className="income-dashboard-container">
       <h2 className="income-dashboard-title">Tus Ingresos</h2>
 
-      {/* Sección de la gráfica */}
+      {/* Sección de la gráfica y el calendario */}
       <div className="income-chart-section">
         <div className="chart-and-buttons">
+          {/* Gráfica */}
           <div className="income-chart">
             {chartData && chartData.labels && chartData.labels.length > 0 ? (
               <Pie data={chartData} width={300} height={300} />
@@ -138,6 +139,8 @@ const IncomeDashboard = () => {
               <p>No hay datos disponibles para mostrar.</p>
             )}
           </div>
+
+          {/* Botones de Filtrar y Agregar Ingreso */}
           <div className="button-group">
             <button 
               className="btn btn-outline-secondary filter-button" 
@@ -154,9 +157,19 @@ const IncomeDashboard = () => {
               <i className="bi bi-plus"></i> Agregar Ingreso
             </button>
           </div>
+
+          {/* Calendario */}
+          <div className="income-calendar">
+            <Calendar
+              localizer={localizer}
+              events={[]} // Sin eventos por ahora
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 300, width: 500 }}
+            />
+          </div>
         </div>
       </div>
-
 
       {/* Sección de la tabla de ingresos */}
       <div className="income-list-section">
@@ -169,7 +182,7 @@ const IncomeDashboard = () => {
               <th>Es Fijo</th>
               <th>Tipo</th>
               <th>Fecha</th>
-              <th>Periódico/Único</th> {/* Nueva columna */}
+              <th>Periódico/Único</th>
               <th>Editar</th>
               <th>Eliminar</th>
             </tr>
@@ -183,7 +196,7 @@ const IncomeDashboard = () => {
                 <td>{ingreso.EsFijo ? 'Sí' : 'No'}</td>
                 <td>{ingreso.Tipo}</td>
                 <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
-                <td>{ingreso.TipoPeriodico}</td> {/* Mostrar "Periódico" o "Único" */}
+                <td>{ingreso.TipoPeriodico}</td>
                 <td>
                   <button className="btn btn-warning btn-sm" onClick={() => handleEdit(ingreso.ID_Ingreso)}>
                     <i className="bi bi-pencil-square"></i>
@@ -217,13 +230,12 @@ const IncomeDashboard = () => {
         />
       )}
 
-      {/* Modal para agregar un ingreso */}
       {showAddIncomeModal && (
         <AddIncomeModal
-          onClose={() => setShowAddIncomeModal(false)} // Cierra el modal
+          onClose={() => setShowAddIncomeModal(false)}
           onSave={() => {
-            fetchIngresos(); // Actualizar la lista de ingresos después de agregar uno nuevo
-            setShowAddIncomeModal(false); // Cierra el modal
+            fetchIngresos();
+            setShowAddIncomeModal(false);
           }}
         />
       )}
