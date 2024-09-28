@@ -49,11 +49,11 @@ const FloatingTabIncome = ({ onSave, descripcionIngreso, fechaUltimoIngreso }) =
 
     if (amount) {
       try {
-        // Realizar la solicitud POST para actualizar el ingreso existente
+        // Realizar la solicitud POST para agregar un nuevo ingreso con la misma descripción
         const response = await axios.post('http://127.0.0.1:5000/api/ingreso', {
           id_usuario: userID,
           monto: amount,
-          descripcion: descripcionIngreso,
+          descripcion: descripcionIngreso,  // Solo enviamos el monto y la descripción
         }, {
           headers: {
             Authorization: `Bearer ${token}`, // Agregar el token en los headers
@@ -61,14 +61,14 @@ const FloatingTabIncome = ({ onSave, descripcionIngreso, fechaUltimoIngreso }) =
           }
         });
 
-        console.log('Ingreso actualizado:', response.data.message);
+        console.log('Ingreso procesado:', response.data.message);
 
         if (onSave) {
           onSave(); // Llamar a la función onSave después de guardar
         }
       } catch (error) {
-        console.error('Error al actualizar el ingreso:', error);
-        alert('Hubo un error al actualizar el ingreso. Inténtalo nuevamente.');
+        console.error('Error al procesar el ingreso:', error);
+        alert('Hubo un error al procesar el ingreso. Inténtalo nuevamente.');
       }
     } else {
       alert('Debe ingresar un monto válido.');

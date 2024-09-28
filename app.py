@@ -283,57 +283,113 @@ def agregar_ingreso():
     data = request.json
     id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
     monto = data.get('monto')
-    descripcion = data.get('descripcion')
-    fecha = datetime.now().date()  # Fecha actual
+    descripcion = data.get('descripcion', None)
+    tipo = data.get('tipo', None)
+    periodicidad = data.get('periodicidad', None)
+    es_fijo = data.get('esFijo', None)
+    es_periodico = data.get('es_periodico', True)  # Por defecto, es periódico si no se especifica lo contrario
+    fecha_actual = datetime.now().date()  # Fecha actual
 
-    # Mensaje para verificar los datos recibidos
-    print(f"Datos recibidos para agregar ingreso: {data}")
-    print(f"ID Usuario: {id_usuario}, Descripción: {descripcion}, Monto: {monto}, Fecha: {fecha}")
-
+    # Conexión a la base de datos
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
-    
+
     cursor = connection.cursor()
 
-    # Verificar si llega el campo es_periodico, si no llega, lo tomamos como True por defecto
-    es_periodico = data.get('es_periodico', True)
+    # Si el frontend solo envía el monto, buscamos un ingreso existente con la misma descripción
+    if descripcion is None or tipo is None:
+        # Si solo se recibe el monto, estamos actualizando el ingreso periódico sin cambiar la descripción ni otros datos
+        print("Actualización de ingreso con solo monto y fecha actual")
 
-    # Si es_periodico es False, entonces Periodicidad y EsFijo deben ser NULL
-    if not es_periodico:
-        periodicidad = None
-        es_fijo = None
-    else:
-        # Si es_periodico es True, extraemos los valores de periodicidad y esFijo
-        periodicidad = data.get('periodicidad')
-        es_fijo = data.get('esFijo')
-
-    tipo = data.get('tipo')
-
-    # Verificar si es un nuevo ingreso (Primera vez)
-    if descripcion and monto and tipo:
-        print(f"Datos para insertar: Periodicidad: {periodicidad}, EsFijo: {es_fijo}, Tipo: {tipo}, EsPeriodico: {es_periodico}")
-
-        query = """
-        INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        query_find_ingreso = """
+        SELECT ID_Ingreso, Descripcion, Tipo, Periodicidad, EsFijo, EsPeriodico
+        FROM Ingreso
+        WHERE ID_Usuario = %s AND Descripcion = %s
+        ORDER BY Fecha DESC
+        LIMIT 1
         """
-        cursor.execute(query, (descripcion, monto, fecha, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
+        cursor.execute(query_find_ingreso, (id_usuario, data.get('descripcion')))
+        ingreso_existente = cursor.fetchone()
+
+        if ingreso_existente:
+            # Si encontramos un ingreso anterior, usamos los mismos datos excepto monto y fecha
+            descripcion = ingreso_existente[1]
+            tipo = ingreso_existente[2]
+            periodicidad = ingreso_existente[3]
+            es_fijo = ingreso_existente[4]
+            es_periodico = ingreso_existente[5]
+
+            # Insertamos un nuevo ingreso con el monto y la fecha actualizada
+            query_insert = """
+            INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query_insert, (descripcion, monto, fecha_actual, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
+            connection.commit()
+
+            print(f"Ingreso con solo monto y fecha actual procesado correctamente para {descripcion}")
+            connection.close()
+            return jsonify({"message": "Ingreso actualizado con éxito"}), 201
+        else:
+            connection.close()
+            return jsonify({"error": "No se encontró un ingreso previo para actualizar"}), 404
+
+    # Si se proporcionan todos los datos, estamos insertando un nuevo ingreso o actualizando uno existente
     else:
-        # Si alguno de los valores requeridos no está, devolvemos un error
-        return jsonify({"error": "Faltan datos obligatorios como descripción, monto o tipo"}), 400
+        print(f"Datos recibidos para agregar o actualizar ingreso: {data}")
+        
+        # Verificar si ya existe un ingreso con la misma descripción
+        query_check = """
+        SELECT ID_Ingreso, Fecha
+        FROM Ingreso
+        WHERE Descripcion = %s AND ID_Usuario = %s
+        ORDER BY Fecha DESC
+        LIMIT 1
+        """
+        cursor.execute(query_check, (descripcion, id_usuario))
+        ingreso_existente = cursor.fetchone()
 
-    connection.commit()
-    
-    # Verificar si el ingreso se insertó correctamente
-    print(f"Ingreso registrado para el usuario {id_usuario} con descripción {descripcion} y monto {monto}")
-    
-    connection.close()
+        if ingreso_existente:
+            # Comprobar si el periodo ha pasado basándose en la periodicidad
+            fecha_ultimo_ingreso = ingreso_existente[1]
+            fecha_siguiente_ingreso = None
 
-    return jsonify({"message": "Ingreso registrado exitosamente"}), 201
+            # Determinar la fecha de comparación en base a la periodicidad
+            if periodicidad == 'Diario':
+                fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(days=1)
+            elif periodicidad == 'Semanal':
+                fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(weeks=1)
+            elif periodicidad == 'Quincenal':
+                fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(weeks=2)
+            elif periodicidad == 'Mensual':
+                fecha_siguiente_ingreso = fecha_ultimo_ingreso + relativedelta(months=1)
 
+            # Si el periodo ha pasado, insertamos un nuevo ingreso
+            if fecha_actual >= fecha_siguiente_ingreso:
+                query_insert = """
+                INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(query_insert, (descripcion, monto, fecha_actual, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
+                print(f"Ingreso periódico insertado correctamente para {descripcion}")
+            else:
+                print("El periodo aún no ha pasado, no se actualiza")
+                return jsonify({"message": "El periodo aún no ha pasado, no es necesario actualizar el ingreso"}), 200
+        else:
+            # Insertar un nuevo ingreso
+            print(f"Insertando nuevo ingreso para {descripcion}")
+            query_insert = """
+            INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query_insert, (descripcion, monto, fecha_actual, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
 
+        connection.commit()
+        print(f"Ingreso procesado correctamente para {descripcion}")
+        connection.close()
 
+        return jsonify({"message": "Ingreso procesado exitosamente"}), 201
 
 
 # RUTA PARA OBTENER INGRESOS FILTRADOS
