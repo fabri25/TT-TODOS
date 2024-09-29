@@ -38,7 +38,7 @@ const IncomeDashboard = () => {
       fecha.setDate(fecha.getDate() + 1);
   
       return {
-        title: `Ingreso: ${ingreso.Descripcion}`,
+        title: ingreso.Descripcion, // Solo mostrar la descripción del ingreso
         start: fecha, // Usar la fecha corregida
         end: fecha, // Usar la misma fecha como fin (es un evento de un solo día)
         allDay: true, // Marcar como evento de todo el día
