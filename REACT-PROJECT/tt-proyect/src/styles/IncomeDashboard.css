@@ -64,6 +64,7 @@
 .income-table th {
   background-color: #f2f2f2;
 }
+
 .chart-and-buttons {
   display: flex;
   justify-content: space-between; /* Alinea la gráfica y los botones */
@@ -99,4 +100,89 @@
 .income-calendar {
   flex: 1;
   margin-left: 200px; /* Añade un margen izquierdo al calendario para separarlo aún más */
+}
+
+/* Estilo para las flechas de navegación */
+.custom-toolbar .rbc-btn-group button {
+  background-color: #add8e6; /* Azul claro */
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.custom-toolbar .rbc-btn-group button:hover {
+  background-color: #87ceeb; /* Azul claro más oscuro en hover */
+}
+
+/* Estilo para la cabecera del mes */
+.rbc-toolbar-label {
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: bold;
+}
+
+/* Estilo para los días de la semana */
+.rbc-month-view .rbc-header {
+  background-color: #f2f2f2;
+  color: #333;
+  font-weight: bold;
+}
+
+/* Estilo para alternar colores de los días en el calendario con patrón de ajedrez */
+.rbc-month-row {
+  background-color: #ffffff; /* Color base */
+}
+
+/* Primera fila: alterna azul y blanco */
+.rbc-month-row:nth-child(odd) .rbc-date-cell:nth-child(odd) {
+  background-color: #add8e6; /* Azul claro */
+}
+
+.rbc-month-row:nth-child(odd) .rbc-date-cell:nth-child(even) {
+  background-color: #ffffff; /* Blanco */
+}
+
+/* Segunda fila: alterna blanco y azul */
+.rbc-month-row:nth-child(even) .rbc-date-cell:nth-child(odd) {
+  background-color: #ffffff; /* Blanco */
+}
+
+.rbc-month-row:nth-child(even) .rbc-date-cell:nth-child(even) {
+  background-color: #add8e6; /* Azul claro */
+}
+
+/* Estilo para el día seleccionado */
+.rbc-day-bg.rbc-selected {
+  background-color: #ff6b6b; /* Rojo */
+  color: white;
+}
+
+.rbc-day-bg.rbc-selected:hover {
+  background-color: #ff4b4b; /* Rojo más oscuro en hover */
+}
+
+/* Estilo para los días actuales */
+.rbc-day-bg.rbc-today {
+  border: 2px solid #ff6b6b;
+  background-color: #fff;
+}
+
+/* Estilo para los botones de Month, Week, Day, Agenda */
+.rbc-btn-group button {
+  background-color: #f2f2f2;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+.rbc-btn-group button:hover {
+  background-color: #d4ebf2; /* Azul claro */
+}
+
+.rbc-btn-group .rbc-active {
+  background-color: #add8e6; /* Azul claro */
+  color: white;
 }

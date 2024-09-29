@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/EditIncome.css';
 import ConfirmationModal from './ConfirmationModal';
-import Notification from './Notification';  // Importar el nuevo componente de notificación
+import Notification from './Notification';
 
 const EditIncome = () => {
     const { id } = useParams();
@@ -14,10 +14,11 @@ const EditIncome = () => {
         Periodicidad: '',
         EsFijo: false,
         Tipo: '',
-        Fecha: '' // Aquí manejamos la fecha como una cadena
+        Fecha: '',
+        EsPeriodico: true, // Valor por defecto hasta obtener los datos
     });
-    const [showModal, setShowModal] = useState(false); // Estado para mostrar/ocultar la ventana modal
-    const [notification, setNotification] = useState({ show: false, type: '', message: '' }); // Estado para manejar la notificación
+    const [showModal, setShowModal] = useState(false);
+    const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
     useEffect(() => {
         const fetchIncomeData = async () => {
@@ -26,20 +27,20 @@ const EditIncome = () => {
                 const response = await axios.get(`http://127.0.0.1:5000/api/user/income/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-    
+
                 const fetchedIncome = {
                     ...response.data,
                     EsFijo: response.data.EsFijo === 1 || response.data.EsFijo === true,
                     Monto: formatAmount(response.data.Monto),
                     Fecha: new Date(response.data.Fecha).toISOString().split('T')[0], // Convertir la fecha correctamente
                 };
-    
+
                 setIncomeData(fetchedIncome);
             } catch (error) {
                 console.error("Error al obtener los datos del ingreso", error);
             }
         };
-    
+
         fetchIncomeData();
     }, [id]);
 
@@ -47,7 +48,7 @@ const EditIncome = () => {
         const { name, value } = e.target;
         setIncomeData((prevState) => ({
             ...prevState,
-            [name]: value || '' // Asigna un string vacío si el valor es null o undefined
+            [name]: value || ''
         }));
     };
 
@@ -60,7 +61,7 @@ const EditIncome = () => {
     };
 
     const handleAmountChange = (e) => {
-        const value = e.target.value.replace(/\D/g, ''); // Elimina cualquier carácter que no sea un dígito
+        const value = e.target.value.replace(/\D/g, '');
         setIncomeData((prevState) => ({
             ...prevState,
             Monto: formatAmount(value)
@@ -82,17 +83,17 @@ const EditIncome = () => {
             console.error("Error al actualizar el ingreso", error);
             setNotification({ show: true, type: 'error', message: 'Error al actualizar el ingreso' });
         } finally {
-            setShowModal(false); // Ocultar la ventana modal después de la confirmación
+            setShowModal(false);
         }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setShowModal(true); // Mostrar la ventana modal cuando se haga clic en el botón de actualización
+        setShowModal(true);
     };
 
     const handleCancel = () => {
-        setShowModal(false); // Ocultar la ventana modal si el usuario cancela
+        setShowModal(false);
     };
 
     const formatAmount = (amount) => {
@@ -141,62 +142,53 @@ const EditIncome = () => {
                         type="date"
                         id="Fecha"
                         name="Fecha"
-                        value={incomeData.Fecha} // La fecha debe aparecer aquí en formato YYYY-MM-DD
+                        value={incomeData.Fecha}
                         onChange={handleInputChange}
                         className="form-control"
                         required
                     />
                 </div>
-                <div className="form-group">
-                    <label htmlFor="Periodicidad">Periodicidad</label>
-                    <br /><br />
-                    <select
-                        id="Periodicidad"
-                        name="Periodicidad"
-                        value={incomeData.Periodicidad}
-                        onChange={handleInputChange}
-                        className="form-control"
-                        required
-                    >
-                        <option value="">Selecciona la periodicidad</option>
-                        <option value="Diario">Diario</option>
-                        <option value="Semanal">Semanal</option>
-                        <option value="Quincenal">Quincenal</option>
-                        <option value="Mensual">Mensual</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="Tipo">Tipo</label>
-                    <br /><br />
-                    <select
-                        id="Tipo"
-                        name="Tipo"
-                        value={incomeData.Tipo}
-                        onChange={handleInputChange}
-                        className="form-control"
-                        required
-                    >
-                        <option value="">Selecciona el tipo</option>
-                        <option value="Activo">Activo</option>
-                        <option value="Pasivo">Pasivo</option>
-                    </select>
-                </div>
-                <div className="form-group checkbox-group">
-                    <label htmlFor="EsFijo"> Es Fijo</label>
-                    <br /><br /><br />
-                    <input
-                        type="checkbox"
-                        id="EsFijo"
-                        name="EsFijo"
-                        checked={incomeData.EsFijo}
-                        onChange={handleCheckboxChange}
-                        className="form-control-checkbox"
-                    />
-                </div>
+
+                {/* Ocultar periodicidad si es un ingreso único */}
+                {incomeData.EsPeriodico && (
+                    <>
+                        <div className="form-group">
+                            <label htmlFor="Periodicidad">Periodicidad</label>
+                            <br /><br />
+                            <select
+                                id="Periodicidad"
+                                name="Periodicidad"
+                                value={incomeData.Periodicidad}
+                                onChange={handleInputChange}
+                                className="form-control"
+                                required
+                            >
+                                <option value="">Selecciona la periodicidad</option>
+                                <option value="Diario">Diario</option>
+                                <option value="Semanal">Semanal</option>
+                                <option value="Quincenal">Quincenal</option>
+                                <option value="Mensual">Mensual</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group checkbox-group">
+                            <label htmlFor="EsFijo"> Es Fijo</label>
+                            <br /><br />
+                            <input
+                                type="checkbox"
+                                id="EsFijo"
+                                name="EsFijo"
+                                checked={incomeData.EsFijo}
+                                onChange={handleCheckboxChange}
+                                className="form-control-checkbox"
+                            />
+                        </div>
+                    </>
+                )}
+
                 <button type="submit" className="btn btn-primary">Actualizar Ingreso</button>
             </form>
 
-            {/* Mostrar la ventana modal de confirmación */}
             {showModal && (
                 <ConfirmationModal
                     message="¿Está seguro de que desea actualizar este ingreso?"
@@ -205,7 +197,6 @@ const EditIncome = () => {
                 />
             )}
 
-            {/* Mostrar la notificación */}
             {notification.show && (
                 <Notification
                     type={notification.type}

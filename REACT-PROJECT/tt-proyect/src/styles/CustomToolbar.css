@@ -1,0 +1,65 @@
+/* Estilo base para los botones */
+.custom-toolbar .rbc-btn-group button {
+  border: none;
+  color: black; /* Color del texto */
+  font-size: 1.2rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+/* Estilos para los botones en patrón de ajedrez */
+/* Fila 1: Azul en impares, Blanco en pares */
+.custom-toolbar .rbc-btn-group:nth-of-type(1) button:nth-child(odd) {
+  background-color: #add8e6; /* Azul claro */
+  color: black;
+}
+
+.custom-toolbar .rbc-btn-group:nth-of-type(1) button:nth-child(even) {
+  background-color: white; /* Blanco */
+  color: black;
+}
+
+/* Fila 2: Blanco en impares, Azul en pares */
+.custom-toolbar .rbc-btn-group:nth-of-type(2) button:nth-child(odd) {
+  background-color: white;
+  color: black;
+}
+
+.custom-toolbar .rbc-btn-group:nth-of-type(2) button:nth-child(even) {
+  background-color: #add8e6; /* Azul claro */
+  color: black;
+}
+
+/* Fila 3: Azul en impares, Blanco en pares */
+.custom-toolbar .rbc-btn-group:nth-of-type(3) button:nth-child(odd) {
+  background-color: #add8e6; /* Azul claro */
+  color: black;
+}
+
+.custom-toolbar .rbc-btn-group:nth-of-type(3) button:nth-child(even) {
+  background-color: white;
+  color: black;
+}
+
+/* Fila 4: Blanco en impares, Azul en pares */
+.custom-toolbar .rbc-btn-group:nth-of-type(4) button:nth-child(odd) {
+  background-color: white;
+  color: black;
+}
+
+.custom-toolbar .rbc-btn-group:nth-of-type(4) button:nth-child(even) {
+  background-color: #add8e6;
+  color: black;
+}
+
+/* Hover: Cambia el color en hover para dar un efecto */
+.custom-toolbar .rbc-btn-group button:hover {
+  background-color: #87ceeb; /* Azul más oscuro para hover */
+  color: white; /* Texto blanco en hover */
+}
+
+/* Estilo para el botón activo (por ejemplo, "Hoy") */
+.custom-toolbar .rbc-active {
+  background-color: #ff6b6b; /* Rojo */
+  color: white;
+}

@@ -11,6 +11,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/IncomeDashboard.css';
+import CustomToolbar from './CustomToolbar'; // Importa el nuevo componente
 
 // Registra los componentes de Chart.js
 Chart.register(ArcElement, Tooltip, Legend);
@@ -19,6 +20,7 @@ const localizer = momentLocalizer(moment);
 
 const IncomeDashboard = () => {
   const [ingresos, setIngresos] = useState([]);
+  const [events, setEvents] = useState([]); // Estado para manejar los eventos del calendario
   const [showModal, setShowModal] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState(null);
   const [chartData, setChartData] = useState({});
@@ -26,6 +28,23 @@ const IncomeDashboard = () => {
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
   const navigate = useNavigate();
+
+  // Función para transformar los ingresos en eventos de calendario
+  const transformIngresosToEvents = (ingresos) => {
+    return ingresos.map(ingreso => {
+      const fecha = new Date(ingreso.Fecha);
+      
+      // Sumar 1 día para corregir el desplazamiento
+      fecha.setDate(fecha.getDate() + 1);
+  
+      return {
+        title: `Ingreso: ${ingreso.Descripcion}`,
+        start: fecha, // Usar la fecha corregida
+        end: fecha, // Usar la misma fecha como fin (es un evento de un solo día)
+        allDay: true, // Marcar como evento de todo el día
+      };
+    });
+  };
 
   const fetchIngresos = useCallback(async (filters = {}) => {
     try {
@@ -44,11 +63,18 @@ const IncomeDashboard = () => {
         return;
       }
 
+      // Obtener ingresos
       const response = await axios.get('http://127.0.0.1:5000/api/user/incomes', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setIngresos(response.data);
+      const ingresosData = response.data;
+      setIngresos(ingresosData);
 
+      // Transformar los ingresos en eventos de calendario
+      const events = transformIngresosToEvents(ingresosData);
+      setEvents(events); // Establecer los eventos para el calendario
+
+      // Obtener datos para la gráfica
       const chartResponse = await axios.post('http://127.0.0.1:5000/api/income/filtered', 
       {
         user_id: userID,
@@ -158,14 +184,17 @@ const IncomeDashboard = () => {
             </button>
           </div>
 
-          {/* Calendario */}
+          {/* Calendario con eventos */}
           <div className="income-calendar">
             <Calendar
               localizer={localizer}
-              events={[]} // Sin eventos por ahora
+              events={events} // Pasar los eventos (ingresos) al calendario
               startAccessor="start"
               endAccessor="end"
-              style={{ height: 300, width: 500 }}
+              style={{ height: 500, width: 700 }}
+              components={{
+                toolbar: CustomToolbar, // Usa el nuevo toolbar
+              }}
             />
           </div>
         </div>

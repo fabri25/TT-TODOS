@@ -288,7 +288,16 @@ def agregar_ingreso():
     periodicidad = data.get('periodicidad', None)
     es_fijo = data.get('esFijo', None)
     es_periodico = data.get('es_periodico', True)  # Por defecto, es periódico si no se especifica lo contrario
-    fecha_actual = datetime.now().date()  # Fecha actual
+    
+    # Verificar si se envió una fecha en el payload; si no, usar la fecha actual
+    fecha = data.get('fecha', None)
+    if fecha:
+        try:
+            fecha = datetime.strptime(fecha, '%Y-%m-%d').date()  # Convertir la fecha de string a objeto datetime
+        except ValueError:
+            return jsonify({"error": "Formato de fecha incorrecto. Use YYYY-MM-DD."}), 400
+    else:
+        fecha = datetime.now().date()  # Usar la fecha actual si no se envió una en el payload
 
     # Conexión a la base de datos
     connection = create_connection()
@@ -325,7 +334,7 @@ def agregar_ingreso():
             INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query_insert, (descripcion, monto, fecha_actual, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
+            cursor.execute(query_insert, (descripcion, monto, fecha, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
             connection.commit()
 
             print(f"Ingreso con solo monto y fecha actual procesado correctamente para {descripcion}")
@@ -366,12 +375,12 @@ def agregar_ingreso():
                 fecha_siguiente_ingreso = fecha_ultimo_ingreso + relativedelta(months=1)
 
             # Si el periodo ha pasado, insertamos un nuevo ingreso
-            if fecha_actual >= fecha_siguiente_ingreso:
+            if fecha >= fecha_siguiente_ingreso:
                 query_insert = """
                 INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                cursor.execute(query_insert, (descripcion, monto, fecha_actual, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
+                cursor.execute(query_insert, (descripcion, monto, fecha, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
                 print(f"Ingreso periódico insertado correctamente para {descripcion}")
             else:
                 print("El periodo aún no ha pasado, no se actualiza")
@@ -383,13 +392,14 @@ def agregar_ingreso():
             INSERT INTO Ingreso (Descripcion, Monto, Fecha, Tipo, ID_Usuario, Periodicidad, EsFijo, EsPeriodico)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query_insert, (descripcion, monto, fecha_actual, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
+            cursor.execute(query_insert, (descripcion, monto, fecha, tipo, id_usuario, periodicidad, es_fijo, es_periodico))
 
         connection.commit()
         print(f"Ingreso procesado correctamente para {descripcion}")
         connection.close()
 
         return jsonify({"message": "Ingreso procesado exitosamente"}), 201
+
 
 
 # RUTA PARA OBTENER INGRESOS FILTRADOS
@@ -555,7 +565,7 @@ def get_income_by_id(id_ingreso):
 
     cursor = connection.cursor(dictionary=True)
     query = """
-    SELECT ID_Ingreso, Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha
+    SELECT ID_Ingreso, Descripcion, Monto, Periodicidad, EsFijo, Tipo, Fecha, EsPeriodico
     FROM Ingreso
     WHERE ID_Ingreso = %s AND ID_Usuario = %s
     """
@@ -568,6 +578,7 @@ def get_income_by_id(id_ingreso):
         return jsonify(income), 200
     else:
         return jsonify({"error": "Ingreso no encontrado"}), 404
+
 
 
 
