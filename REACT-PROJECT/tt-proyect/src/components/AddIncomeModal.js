@@ -117,7 +117,7 @@ const AddIncomeModal = ({ onClose, onSave }) => {
 
         {/* Mover check de EsGastoUnico al principio */}
         <div className="form-group checkbox-group">
-          <label htmlFor="EsPeriodico">Es Gasto Único</label>
+          <label htmlFor="EsPeriodico">Es Ingreso Único</label>
           <input
             type="checkbox"
             id="EsPeriodico"

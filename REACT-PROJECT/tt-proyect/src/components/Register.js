@@ -108,7 +108,7 @@ const Register = () => {
                         <input type="date" className="material-login-control" required value={fechaCumple} onChange={(e) => setFechaCumple(e.target.value)} />
                         <span className="highlight-login"></span>
                         <span className="bar-login"></span>
-                        <label><i className="bi bi-calendar"></i> &nbsp; Fecha de Cumpleaños</label>
+                        <label><i className="bi bi-calendar"></i> &nbsp; Fecha de nacimiento</label>
                     </div>
                     <div className="group-material-login">
                         <input type="text" className="material-login-control" maxLength="100" value={contacto} onChange={(e) => setContacto(e.target.value)} />
