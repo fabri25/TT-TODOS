@@ -6,45 +6,41 @@ import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
 import FilterModal from './FilterModal';
-import AddIncomeModal from './AddIncomeModal';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/IncomeDashboard.css';
-import CustomToolbar from './CustomToolbar'; // Importa el nuevo componente
+import CustomToolbar from './CustomToolbar';
 
-// Registra los componentes de Chart.js
 Chart.register(ArcElement, Tooltip, Legend);
 
 const localizer = momentLocalizer(moment);
 
 const IncomeDashboard = () => {
   const [ingresos, setIngresos] = useState([]);
-  const [events, setEvents] = useState([]); // Estado para manejar los eventos del calendario
+  const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState(null);
   const [chartData, setChartData] = useState({});
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
-  const [selectedIncome, setSelectedIncome] = useState(null); // Nuevo estado para el ingreso seleccionado
-  const [popoverPosition, setPopoverPosition] = useState(null); // Para manejar la posición del popover
+  const [selectedIncome, setSelectedIncome] = useState(null);
+  const [popoverPosition, setPopoverPosition] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null); // Almacena la fecha seleccionada
   const navigate = useNavigate();
 
   // Función para transformar los ingresos en eventos de calendario
   const transformIngresosToEvents = (ingresos) => {
     return ingresos.map((ingreso) => {
       const fecha = new Date(ingreso.Fecha);
-
-      // Sumar 1 día para corregir el desplazamiento
       fecha.setDate(fecha.getDate() + 1);
 
       return {
         id: ingreso.ID_Ingreso,
         title: ingreso.Descripcion,
-        start: fecha, // Usar la fecha corregida
-        end: fecha, // Usar la misma fecha como fin (es un evento de un solo día)
-        allDay: true, // Marcar como evento de todo el día
+        start: fecha,
+        end: fecha,
+        allDay: true,
       };
     });
   };
@@ -66,18 +62,15 @@ const IncomeDashboard = () => {
         return;
       }
 
-      // Obtener ingresos
       const response = await axios.get('http://127.0.0.1:5000/api/user/incomes', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const ingresosData = response.data;
       setIngresos(ingresosData);
 
-      // Transformar los ingresos en eventos de calendario
       const events = transformIngresosToEvents(ingresosData);
-      setEvents(events); // Establecer los eventos para el calendario
+      setEvents(events);
 
-      // Obtener datos para la gráfica
       const chartResponse = await axios.post(
         'http://127.0.0.1:5000/api/income/filtered',
         {
@@ -144,22 +137,22 @@ const IncomeDashboard = () => {
   };
 
   const handleEventClick = (event, e) => {
-    setSelectedIncome(event.id); // Guardar el ID del ingreso seleccionado
+    setSelectedIncome(event.id);
     setPopoverPosition({
-      top: e.clientY, // Posición Y del evento
-      left: e.clientX, // Posición X del evento
+      top: e.clientY,
+      left: e.clientX,
     });
   };
 
   const closePopover = () => {
-    setSelectedIncome(null); // Cerrar el popover
+    setSelectedIncome(null);
     setPopoverPosition(null);
+    setSelectedDate(null);
   };
 
-  // Cerrar el popover si se hace clic fuera de él
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (selectedIncome && !e.target.closest('.event-popover')) {
+      if ((selectedIncome || selectedDate) && !e.target.closest('.event-popover')) {
         closePopover();
       }
     };
@@ -168,7 +161,7 @@ const IncomeDashboard = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [selectedIncome]);
+  }, [selectedIncome, selectedDate]);
 
   const handleApplyFilters = (filters) => {
     setCurrentFilters(filters);
@@ -182,14 +175,27 @@ const IncomeDashboard = () => {
     setShowFilterModal(false);
   };
 
+  // Detectar clic en un día del calendario
+  const handleDateClick = (slotInfo) => {
+    setSelectedDate(slotInfo.start);
+    setPopoverPosition({
+      top: slotInfo.box.y,
+      left: slotInfo.box.x,
+    });
+  };
+
+  // Redirigir al componente AddIncomeModal con la fecha seleccionada
+  const handleAddIncomeClick = () => {
+    navigate('/dashboard/add-income', { state: { selectedDate } });
+    setPopoverPosition(null);
+  };
+
   return (
     <div className="income-dashboard-container">
       <h2 className="income-dashboard-title">Tus Ingresos</h2>
 
-      {/* Sección de la gráfica y el calendario */}
       <div className="income-chart-section">
         <div className="chart-and-buttons">
-          {/* Gráfica */}
           <div className="income-chart">
             {chartData && chartData.labels && chartData.labels.length > 0 ? (
               <Pie data={chartData} width={300} height={300} />
@@ -198,7 +204,6 @@ const IncomeDashboard = () => {
             )}
           </div>
 
-          {/* Botones de Filtrar y Agregar Ingreso */}
           <div className="button-group">
             <button
               className="btn btn-outline-secondary filter-button"
@@ -207,7 +212,6 @@ const IncomeDashboard = () => {
               <i className="bi bi-filter"></i> Filtrar
             </button>
 
-            {/* Botón para agregar ingresos */}
             <button
               className="btn btn-primary add-income-button"
               onClick={() => navigate('/dashboard/add-income')}
@@ -216,32 +220,71 @@ const IncomeDashboard = () => {
             </button>
           </div>
 
-          {/* Calendario con eventos */}
           <div className="income-calendar">
             <Calendar
               localizer={localizer}
-              events={events} // Pasar los eventos (ingresos) al calendario
+              events={events}
               startAccessor="start"
               endAccessor="end"
               style={{ height: 500, width: 700 }}
               components={{
-                toolbar: CustomToolbar, // Usa el nuevo toolbar
+                toolbar: CustomToolbar,
               }}
-              onSelectEvent={(event, e) => handleEventClick(event, e)} // Detectar clic en un evento
+              onSelectEvent={(event, e) => handleEventClick(event, e)}
+              onSelectSlot={(slotInfo) => handleDateClick(slotInfo)}
+              selectable
             />
           </div>
 
-          {/* Popover que contiene los botones de Editar, Eliminar y Cerrar */}
-          {popoverPosition && selectedIncome && (
+          {selectedIncome && popoverPosition && (
             <div
               className="event-popover"
-              style={{ top: popoverPosition.top, left: popoverPosition.left, position: 'absolute' }}
+              style={{
+                position: 'absolute',
+                top: `${popoverPosition.top}px`,
+                left: `${popoverPosition.left}px`,
+                backgroundColor: '#fff',
+                border: '1px solid #ccc',
+                padding: '10px',
+                zIndex: 100,
+              }}
             >
-              <button className="btn btn-warning btn-sm" onClick={() => handleEdit(selectedIncome)}>
+              <button
+                className="btn btn-warning btn-sm"
+                onClick={() => handleEdit(selectedIncome)}
+              >
                 Editar
               </button>
-              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(selectedIncome)}>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => handleDelete(selectedIncome)}
+              >
                 Eliminar
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={closePopover}>
+                Cerrar
+              </button>
+            </div>
+          )}
+
+          {selectedDate && popoverPosition && (
+            <div
+              className="event-popover"
+              style={{
+                position: 'absolute',
+                top: `${popoverPosition.top}px`,
+                left: `${popoverPosition.left}px`,
+                backgroundColor: '#fff',
+                border: '1px solid #ccc',
+                padding: '10px',
+                zIndex: 100,
+              }}
+            >
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleAddIncomeClick}
+              >
+                Agregar Ingreso
               </button>
               <button className="btn btn-secondary btn-sm" onClick={closePopover}>
                 Cerrar
@@ -251,7 +294,6 @@ const IncomeDashboard = () => {
         </div>
       </div>
 
-      {/* Sección de la tabla de ingresos */}
       <div className="income-list-section">
         <table className="income-table">
           <thead>
@@ -313,16 +355,6 @@ const IncomeDashboard = () => {
           onApplyFilters={handleApplyFilters}
           onClearFilters={handleClearFilters}
           onClose={() => setShowFilterModal(false)}
-        />
-      )}
-
-      {showAddIncomeModal && (
-        <AddIncomeModal
-          onClose={() => setShowAddIncomeModal(false)}
-          onSave={() => {
-            fetchIngresos();
-            setShowAddIncomeModal(false);
-          }}
         />
       )}
     </div>
