@@ -22,29 +22,29 @@ const IncomeDashboard = () => {
   const [ingresos, setIngresos] = useState([]);
   const [events, setEvents] = useState([]); // Estado para manejar los eventos del calendario
   const [showModal, setShowModal] = useState(false);
-  const [showEventModal, setShowEventModal] = useState(false); // Nuevo estado para mostrar el modal de eventos
-  const [selectedIncome, setSelectedIncome] = useState(null); // Guardar el ingreso seleccionado
   const [incomeToDelete, setIncomeToDelete] = useState(null);
   const [chartData, setChartData] = useState({});
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAddIncomeModal, setShowAddIncomeModal] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
+  const [selectedIncome, setSelectedIncome] = useState(null); // Nuevo estado para el ingreso seleccionado
+  const [popoverPosition, setPopoverPosition] = useState(null); // Para manejar la posición del popover
   const navigate = useNavigate();
 
   // Función para transformar los ingresos en eventos de calendario
   const transformIngresosToEvents = (ingresos) => {
-    return ingresos.map(ingreso => {
+    return ingresos.map((ingreso) => {
       const fecha = new Date(ingreso.Fecha);
-      
+
       // Sumar 1 día para corregir el desplazamiento
       fecha.setDate(fecha.getDate() + 1);
-  
+
       return {
-        title: ingreso.Descripcion, // Solo mostrar la descripción del ingreso
+        id: ingreso.ID_Ingreso,
+        title: ingreso.Descripcion,
         start: fecha, // Usar la fecha corregida
         end: fecha, // Usar la misma fecha como fin (es un evento de un solo día)
         allDay: true, // Marcar como evento de todo el día
-        ingresoId: ingreso.ID_Ingreso, // Guardar el ID del ingreso en el evento
       };
     });
   };
@@ -68,7 +68,7 @@ const IncomeDashboard = () => {
 
       // Obtener ingresos
       const response = await axios.get('http://127.0.0.1:5000/api/user/incomes', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       const ingresosData = response.data;
       setIngresos(ingresosData);
@@ -78,25 +78,27 @@ const IncomeDashboard = () => {
       setEvents(events); // Establecer los eventos para el calendario
 
       // Obtener datos para la gráfica
-      const chartResponse = await axios.post('http://127.0.0.1:5000/api/income/filtered', 
-      {
-        user_id: userID,
-        ...filters,
-      }, 
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const chartResponse = await axios.post(
+        'http://127.0.0.1:5000/api/income/filtered',
+        {
+          user_id: userID,
+          ...filters,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-      });
+      );
 
       const incomeData = chartResponse.data;
       const data = {
-        labels: incomeData.map(item => item.Descripcion),
+        labels: incomeData.map((item) => item.Descripcion),
         datasets: [
           {
             label: 'Tus ingresos',
-            data: incomeData.map(item => item.Monto),
+            data: incomeData.map((item) => item.Monto),
             backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
           },
         ],
@@ -122,7 +124,7 @@ const IncomeDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`http://127.0.0.1:5000/api/user/incomes/${incomeToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setIngresos(ingresos.filter((ingreso) => ingreso.ID_Ingreso !== incomeToDelete));
       setShowModal(false);
@@ -141,6 +143,33 @@ const IncomeDashboard = () => {
     navigate(`/dashboard/edit-income/${idIngreso}`);
   };
 
+  const handleEventClick = (event, e) => {
+    setSelectedIncome(event.id); // Guardar el ID del ingreso seleccionado
+    setPopoverPosition({
+      top: e.clientY, // Posición Y del evento
+      left: e.clientX, // Posición X del evento
+    });
+  };
+
+  const closePopover = () => {
+    setSelectedIncome(null); // Cerrar el popover
+    setPopoverPosition(null);
+  };
+
+  // Cerrar el popover si se hace clic fuera de él
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (selectedIncome && !e.target.closest('.event-popover')) {
+        closePopover();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [selectedIncome]);
+
   const handleApplyFilters = (filters) => {
     setCurrentFilters(filters);
     fetchIngresos(filters);
@@ -151,12 +180,6 @@ const IncomeDashboard = () => {
     setCurrentFilters({});
     fetchIngresos();
     setShowFilterModal(false);
-  };
-
-  // Manejar la selección de un evento (ingreso)
-  const handleEventSelect = (event) => {
-    setSelectedIncome(event.ingresoId); // Guardar el ingreso seleccionado
-    setShowEventModal(true); // Mostrar el modal con las opciones de editar/eliminar
   };
 
   return (
@@ -177,8 +200,8 @@ const IncomeDashboard = () => {
 
           {/* Botones de Filtrar y Agregar Ingreso */}
           <div className="button-group">
-            <button 
-              className="btn btn-outline-secondary filter-button" 
+            <button
+              className="btn btn-outline-secondary filter-button"
               onClick={() => setShowFilterModal(true)}
             >
               <i className="bi bi-filter"></i> Filtrar
@@ -204,36 +227,29 @@ const IncomeDashboard = () => {
               components={{
                 toolbar: CustomToolbar, // Usa el nuevo toolbar
               }}
-              onSelectEvent={handleEventSelect} // Detectar cuando se selecciona un evento
+              onSelectEvent={(event, e) => handleEventClick(event, e)} // Detectar clic en un evento
             />
           </div>
+
+          {/* Popover que contiene los botones de Editar, Eliminar y Cerrar */}
+          {popoverPosition && selectedIncome && (
+            <div
+              className="event-popover"
+              style={{ top: popoverPosition.top, left: popoverPosition.left, position: 'absolute' }}
+            >
+              <button className="btn btn-warning btn-sm" onClick={() => handleEdit(selectedIncome)}>
+                Editar
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(selectedIncome)}>
+                Eliminar
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={closePopover}>
+                Cerrar
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Modal para editar/eliminar el ingreso seleccionado */}
-      {showEventModal && selectedIncome && (
-        <div className="event-modal">
-          <h4>Opciones para el ingreso seleccionado</h4>
-          <button 
-            className="btn btn-warning" 
-            onClick={() => handleEdit(selectedIncome)}
-          >
-            Editar
-          </button>
-          <button 
-            className="btn btn-danger" 
-            onClick={() => handleDelete(selectedIncome)}
-          >
-            Eliminar
-          </button>
-          <button 
-            className="btn btn-secondary" 
-            onClick={() => setShowEventModal(false)}
-          >
-            Cerrar
-          </button>
-        </div>
-      )}
 
       {/* Sección de la tabla de ingresos */}
       <div className="income-list-section">
@@ -262,12 +278,18 @@ const IncomeDashboard = () => {
                 <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
                 <td>{ingreso.TipoPeriodico}</td>
                 <td>
-                  <button className="btn btn-warning btn-sm" onClick={() => handleEdit(ingreso.ID_Ingreso)}>
+                  <button
+                    className="btn btn-warning btn-sm"
+                    onClick={() => handleEdit(ingreso.ID_Ingreso)}
+                  >
                     <i className="bi bi-pencil-square"></i>
                   </button>
                 </td>
                 <td>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(ingreso.ID_Ingreso)}>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleDelete(ingreso.ID_Ingreso)}
+                  >
                     <i className="bi bi-trash"></i>
                   </button>
                 </td>
