@@ -22,6 +22,8 @@ const IncomeDashboard = () => {
   const [ingresos, setIngresos] = useState([]);
   const [events, setEvents] = useState([]); // Estado para manejar los eventos del calendario
   const [showModal, setShowModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false); // Nuevo estado para mostrar el modal de eventos
+  const [selectedIncome, setSelectedIncome] = useState(null); // Guardar el ingreso seleccionado
   const [incomeToDelete, setIncomeToDelete] = useState(null);
   const [chartData, setChartData] = useState({});
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -42,6 +44,7 @@ const IncomeDashboard = () => {
         start: fecha, // Usar la fecha corregida
         end: fecha, // Usar la misma fecha como fin (es un evento de un solo día)
         allDay: true, // Marcar como evento de todo el día
+        ingresoId: ingreso.ID_Ingreso, // Guardar el ID del ingreso en el evento
       };
     });
   };
@@ -150,6 +153,12 @@ const IncomeDashboard = () => {
     setShowFilterModal(false);
   };
 
+  // Manejar la selección de un evento (ingreso)
+  const handleEventSelect = (event) => {
+    setSelectedIncome(event.ingresoId); // Guardar el ingreso seleccionado
+    setShowEventModal(true); // Mostrar el modal con las opciones de editar/eliminar
+  };
+
   return (
     <div className="income-dashboard-container">
       <h2 className="income-dashboard-title">Tus Ingresos</h2>
@@ -195,10 +204,36 @@ const IncomeDashboard = () => {
               components={{
                 toolbar: CustomToolbar, // Usa el nuevo toolbar
               }}
+              onSelectEvent={handleEventSelect} // Detectar cuando se selecciona un evento
             />
           </div>
         </div>
       </div>
+
+      {/* Modal para editar/eliminar el ingreso seleccionado */}
+      {showEventModal && selectedIncome && (
+        <div className="event-modal">
+          <h4>Opciones para el ingreso seleccionado</h4>
+          <button 
+            className="btn btn-warning" 
+            onClick={() => handleEdit(selectedIncome)}
+          >
+            Editar
+          </button>
+          <button 
+            className="btn btn-danger" 
+            onClick={() => handleDelete(selectedIncome)}
+          >
+            Eliminar
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setShowEventModal(false)}
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
 
       {/* Sección de la tabla de ingresos */}
       <div className="income-list-section">
