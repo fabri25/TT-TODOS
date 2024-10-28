@@ -13,6 +13,8 @@ import IncomeChart from './components/IncomeChart';  // Importa el componente de
 import EditIncome from './components/EditIncome';  // Importa el componente de edición de ingresos
 import IncomeDashboard from './components/IncomeDashboard';
 import AddIncome from './components/AddIncomeModal';  // Componente de agregar ingreso
+import ExpenseDashboard from './components/ExpenseDashboard'; // Componente de gastos
+import AddExpense from './components/AddExpenseModal';
 
 
 
@@ -35,8 +37,10 @@ function App() {
           }>
             <Route path="inicio" element={<IncomeChart />} /> 
             <Route path="ingresos" element={<IncomeDashboard />} /> {/* Nuevo componente */}
+            <Route path="gastos" element={<ExpenseDashboard />} /> {/* Nuevo componente */}
             <Route path="/dashboard/edit-income/:id" element={<EditIncome />} />
             <Route path="/dashboard/add-income" element={<AddIncome />} />  
+            <Route path="add-expense" element={<AddExpense />} /> {/* Nueva ruta para agregar gasto */}
           </Route>
         </Routes>
       </div>

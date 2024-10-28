@@ -35,10 +35,11 @@ def create_connection():
     connection = None
     try:
         connection = mysql.connector.connect(
-            host='34.136.136.216',  
+            host='junction.proxy.rlwy.net',  
             user='root',  
-            password='tt-finance1',  
-            database='gestion_financiera'  
+            password='seGINyodjSJtCdGANdxoshXTJKuQNOAV',  
+            database='railway',  
+            port='46796'
         )
         return connection
     except Error as e:
@@ -578,6 +579,257 @@ def get_income_by_id(id_ingreso):
         return jsonify(income), 200
     else:
         return jsonify({"error": "Ingreso no encontrado"}), 404
+    
+
+@app.route('/api/gasto', methods=['POST'])
+@jwt_required()
+def agregar_gasto():
+    data = request.json
+    print("Datos recibidos en el backend para gasto:", data)  # Esto imprime el contenido de la solicitud
+
+    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+    descripcion = data.get('descripcion')
+    monto = data.get('monto')
+    fecha = data.get('fecha', None)
+    categoria = data.get('categoria')
+    subcategoria = data.get('subcategoria')  # Aquí obtenemos la subcategoría
+    periodicidad = data.get('periodicidad', None)
+    periodico = data.get('periodico', False)
+    id_grupo = data.get('id_grupo', None)
+
+    # Verificar si se envió una fecha en el payload; si no, usar la fecha actual
+    if fecha:
+        try:
+            fecha = datetime.strptime(fecha, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({"error": "Formato de fecha incorrecto. Use YYYY-MM-DD."}), 400
+    else:
+        fecha = datetime.now().date()
+
+    # Verificar datos obligatorios
+    if not descripcion or not monto or not categoria:
+        return jsonify({"error": "Datos incompletos"}), 400
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor()
+
+    # Insertar el nuevo gasto
+    query = """
+    INSERT INTO Gasto (Descripcion, Monto, Fecha, Categoria, ID_Subcategoria, Periodico, ID_Usuario, ID_Grupo, Periodicidad)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """
+    cursor.execute(query, (descripcion, monto, fecha, categoria, subcategoria, periodico, id_usuario, id_grupo, periodicidad))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Gasto registrado con éxito"}), 201
+
+
+
+
+
+@app.route('/api/user/gastos', methods=['GET'])
+@jwt_required()
+def obtener_gastos_usuario():
+    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Obtener los gastos del usuario junto con el nombre de la subcategoría
+    query = """
+    SELECT G.ID_Gasto, G.Descripcion, G.Monto, G.Fecha, G.Categoria, G.Periodicidad, 
+           G.Periodico, G.ID_Grupo, S.Nombre AS Subcategoria
+    FROM Gasto G
+    LEFT JOIN Subcategoria S ON G.ID_Subcategoria = S.ID_Subcategoria
+    WHERE G.ID_Usuario = %s
+    ORDER BY G.Fecha DESC
+    """
+    cursor.execute(query, (id_usuario,))
+    gastos = cursor.fetchall()
+
+    connection.close()
+
+    # Convertir el resultado en formato JSON
+    gastos_json = [
+        {
+            "ID_Gasto": gasto["ID_Gasto"],
+            "Descripcion": gasto["Descripcion"],
+            "Monto": gasto["Monto"],
+            "Fecha": gasto["Fecha"].strftime('%Y-%m-%d'),  # Formato de fecha para JSON
+            "Categoria": gasto["Categoria"],
+            "Periodicidad": gasto["Periodicidad"],
+            "Periodico": gasto["Periodico"],
+            "ID_Grupo": gasto["ID_Grupo"],
+            "Subcategoria": gasto["Subcategoria"]  # Añadir el nombre de la subcategoría
+        }
+        for gasto in gastos
+    ]
+
+    return jsonify(gastos_json), 200
+
+
+
+
+@app.route('/api/gasto/<int:id_gasto>', methods=['PUT'])
+@jwt_required()
+def actualizar_gasto(id_gasto):
+    data = request.json
+    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+
+    descripcion = data.get('descripcion')
+    monto = data.get('monto')
+    fecha = data.get('fecha')
+    categoria = data.get('categoria')
+    periodico = data.get('periodico')
+    id_grupo = data.get('id_grupo')
+
+    if not descripcion or not monto or not fecha or not categoria:
+        return jsonify({"error": "Datos incompletos"}), 400
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor()
+
+    # Actualizar el gasto existente
+    query = """
+    UPDATE Gasto
+    SET Descripcion = %s, Monto = %s, Fecha = %s, Categoria = %s, Periodico = %s, ID_Grupo = %s
+    WHERE ID_Gasto = %s AND ID_Usuario = %s
+    """
+    cursor.execute(query, (descripcion, monto, fecha, categoria, periodico, id_grupo, id_gasto, id_usuario))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Gasto actualizado con éxito"}), 200
+
+
+
+@app.route('/api/gasto/<int:id_gasto>', methods=['DELETE'])
+@jwt_required()
+def eliminar_gasto(id_gasto):
+    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor()
+
+    # Eliminar el gasto
+    query = """
+    DELETE FROM Gasto WHERE ID_Gasto = %s AND ID_Usuario = %s
+    """
+    cursor.execute(query, (id_gasto, id_usuario))
+
+    connection.commit()
+    connection.close()
+
+    return jsonify({"message": "Gasto eliminado con éxito"}), 200
+
+
+
+@app.route('/api/gasto/filtered', methods=['POST'])
+@jwt_required()
+def filtrar_gastos_usuario():
+    data = request.json
+    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+    categoria = data.get('categoria', None)
+    periodico = data.get('periodico', None)
+    id_grupo = data.get('id_grupo', None)
+    fecha_inicio = data.get('fecha_inicio', None)
+    fecha_fin = data.get('fecha_fin', None)
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor()
+
+    # Construir la consulta de filtrado dinámico
+    query = """
+    SELECT ID_Gasto, Descripcion, Monto, Fecha, Categoria, Periodico, ID_Grupo
+    FROM Gasto
+    WHERE ID_Usuario = %s
+    """
+    query_params = [id_usuario]
+
+    if categoria:
+        query += " AND Categoria = %s"
+        query_params.append(categoria)
+    
+    if periodico is not None:
+        query += " AND Periodico = %s"
+        query_params.append(periodico)
+    
+    if id_grupo:
+        query += " AND ID_Grupo = %s"
+        query_params.append(id_grupo)
+
+    if fecha_inicio and fecha_fin:
+        query += " AND Fecha BETWEEN %s AND %s"
+        query_params.append(fecha_inicio)
+        query_params.append(fecha_fin)
+
+    query += " ORDER BY Fecha DESC"
+
+    cursor.execute(query, tuple(query_params))
+    gastos = cursor.fetchall()
+
+    connection.close()
+
+    # Transformar los resultados en un formato JSON
+    gastos_json = [
+        {
+            "ID_Gasto": gasto[0],
+            "Descripcion": gasto[1],
+            "Monto": gasto[2],
+            "Fecha": gasto[3],
+            "Categoria": gasto[4],
+            "Periodico": gasto[5],
+            "ID_Grupo": gasto[6],
+        }
+        for gasto in gastos
+    ]
+
+    return jsonify(gastos_json), 200
+
+@app.route('/api/subcategorias/<string:categoria>', methods=['GET'])
+@jwt_required()
+def obtener_subcategorias(categoria):
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Buscar subcategorías según la categoría
+    query = "SELECT ID_Subcategoria, Nombre FROM Subcategoria WHERE Categoria = %s"
+    cursor.execute(query, (categoria,))
+    subcategorias = cursor.fetchall()
+
+    connection.close()
+
+    # Retornar el ID y el Nombre de cada subcategoría
+    return jsonify(subcategorias), 200
+
+
+
 
 
 
