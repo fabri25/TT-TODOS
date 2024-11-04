@@ -15,6 +15,8 @@ import IncomeDashboard from './components/IncomeDashboard';
 import AddIncome from './components/AddIncomeModal';
 import ExpenseDashboard from './components/ExpenseDashboard';
 import AddExpense from './components/AddExpenseModal';
+import CreateGroup from './components/CreateGroup';
+
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
             <Route path="edit-income/:id" element={<EditIncome />} />
             <Route path="add-income" element={<AddIncome />} />
             <Route path="add-expense" element={<AddExpense />} />
+            <Route path="grupo/crear" element={<CreateGroup />} /> {/* Nueva ruta */}
+
           </Route>
         </Routes>
       </div>
