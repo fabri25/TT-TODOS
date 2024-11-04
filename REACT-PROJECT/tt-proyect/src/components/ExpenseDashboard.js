@@ -299,9 +299,9 @@ const ExpenseDashboard = () => {
               <th>Descripción</th>
               <th>Monto</th>
               <th>Categoría</th>
-              <th>Subcategoría</th> {/* Nueva columna */}
+              <th>Subcategoría</th>
               <th>Periodicidad</th>
-              <th>Es Fijo</th>
+              <th>Es Único</th> {/* Cambiar a "Es Único" */}
               <th>Fecha</th>
               <th>Periódico/Único</th>
               <th>Editar</th>
@@ -314,9 +314,9 @@ const ExpenseDashboard = () => {
                 <td>{expense.Descripcion}</td>
                 <td>{expense.Monto}</td>
                 <td>{expense.Categoria}</td>
-                <td>{expense.Subcategoria || "N/A"}</td> {/* Mostrar subcategoría */}
-                <td>{expense.Periodicidad}</td>
-                <td>{expense.EsFijo ? 'Sí' : 'No'}</td>
+                <td>{expense.Subcategoria || "N/A"}</td>
+                <td>{expense.Periodicidad || "N/A"}</td>
+                <td>{expense.Periodico === 0 ? 'Sí' : 'No'}</td> {/* Mostrar "Sí" si es único */}
                 <td>{new Date(expense.Fecha).toISOString().split('T')[0]}</td>
                 <td>{expense.Periodico ? 'Periódico' : 'Único'}</td>
                 <td>

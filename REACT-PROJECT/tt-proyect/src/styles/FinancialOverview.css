@@ -1,0 +1,67 @@
+/* Contenedor principal */
+.financial-overview-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Sección que contiene la gráfica de barras y el calendario */
+.chart-and-calendar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 50px; /* Espacio entre la gráfica de barras y el calendario */
+}
+
+/* Sección de la gráfica de barras */
+.bar-chart-section {
+  width: 600px; /* Ajusta el ancho de la gráfica de barras */
+  height: 500px; /* Altura para que coincida con el calendario */
+  display: flex;
+  align-items: center; /* Centra la gráfica de barras verticalmente */
+  justify-content: center;
+}
+
+/* Sección del calendario */
+.financial-calendar {
+  flex: 1;
+  max-width: 700px;
+}
+
+/* Gráfica de pastel centrada */
+.financial-chart {
+  width: 300px;
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto; /* Asegura que esté centrada en el contenedor */
+}
+
+/* Gráfica de pastel centrada */
+.financial-chart {
+  text-align: center;
+  width: 100%;
+}
+
+.financial-chart canvas {
+  width: 300px !important;
+  height: 300px !important;
+}
+
+/* Grupo de botones */
+.button-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Botón de filtro */
+.filter-button {
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+}

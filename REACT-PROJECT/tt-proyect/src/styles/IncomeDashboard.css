@@ -155,17 +155,17 @@
 
 /* Estilo para el día seleccionado */
 .rbc-day-bg.rbc-selected {
-  background-color: #ff6b6b; /* Rojo */
+  background-color: #3a88ec; /* Rojo */
   color: white;
 }
 
 .rbc-day-bg.rbc-selected:hover {
-  background-color: #ff4b4b; /* Rojo más oscuro en hover */
+  background-color: #3a88ec; /* Rojo más oscuro en hover */
 }
 
 /* Estilo para los días actuales */
 .rbc-day-bg.rbc-today {
-  border: 2px solid #ff6b6b;
+  border: 2px solid #3a88ec;
   background-color: #fff;
 }
 

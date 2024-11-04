@@ -585,19 +585,19 @@ def get_income_by_id(id_ingreso):
 @jwt_required()
 def agregar_gasto():
     data = request.json
-    print("Datos recibidos en el backend para gasto:", data)  # Esto imprime el contenido de la solicitud
+    print("Datos recibidos en el backend para gasto:", data)  # Para verificar el payload en consola
 
     id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
     descripcion = data.get('descripcion')
     monto = data.get('monto')
     fecha = data.get('fecha', None)
     categoria = data.get('categoria')
-    subcategoria = data.get('subcategoria')  # Aquí obtenemos la subcategoría
-    periodicidad = data.get('periodicidad', None)
-    periodico = data.get('periodico', False)
+    id_subcategoria = data.get('id_subcategoria')  # Asegurarse de que sea un ID
+    periodicidad = data.get('periodicidad', None)  # Se espera como None si es único
+    periodico = data.get('periodico', 1)  # Por defecto, asumir que es periódico
     id_grupo = data.get('id_grupo', None)
 
-    # Verificar si se envió una fecha en el payload; si no, usar la fecha actual
+    # Validación de la fecha, si no está en el payload, se usa la fecha actual
     if fecha:
         try:
             fecha = datetime.strptime(fecha, '%Y-%m-%d').date()
@@ -606,23 +606,33 @@ def agregar_gasto():
     else:
         fecha = datetime.now().date()
 
-    # Verificar datos obligatorios
+    # Validación de campos obligatorios
     if not descripcion or not monto or not categoria:
         return jsonify({"error": "Datos incompletos"}), 400
 
-    # Conexión a la base de datos
+    # Configuración de la conexión a la base de datos
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
 
     cursor = connection.cursor()
 
-    # Insertar el nuevo gasto
+    # Si es único, periodicidad será NULL
     query = """
     INSERT INTO Gasto (Descripcion, Monto, Fecha, Categoria, ID_Subcategoria, Periodico, ID_Usuario, ID_Grupo, Periodicidad)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    cursor.execute(query, (descripcion, monto, fecha, categoria, subcategoria, periodico, id_usuario, id_grupo, periodicidad))
+    cursor.execute(query, (
+        descripcion,
+        monto,
+        fecha,
+        categoria,
+        id_subcategoria,
+        periodico,
+        id_usuario,
+        id_grupo,
+        periodicidad if periodico == 1 else None  # Almacena periodicidad solo si es periódico
+    ))
 
     connection.commit()
     connection.close()
@@ -830,6 +840,154 @@ def obtener_subcategorias(categoria):
 
 
 
+@app.route('/api/ingresos/mensuales', methods=['GET'])
+@jwt_required()
+def obtener_ingresos_mensuales():
+    user_id = get_jwt_identity()
+    mes = request.args.get('mes')
+    año = request.args.get('año')
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+    SELECT ID_Ingreso as ID, Descripcion, Monto, Fecha
+    FROM Ingreso
+    WHERE ID_Usuario = %s AND MONTH(Fecha) = %s AND YEAR(Fecha) = %s
+    """
+    cursor.execute(query, (user_id, mes, año))
+    ingresos = cursor.fetchall()
+
+    connection.close()
+    return jsonify(ingresos), 200
+
+
+@app.route('/api/gastos/mensuales', methods=['GET'])
+@jwt_required()
+def obtener_gastos_mensuales():
+    user_id = get_jwt_identity()
+    mes = request.args.get('mes')
+    año = request.args.get('año')
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+    SELECT ID_Gasto as ID, Descripcion, Monto, Fecha
+    FROM Gasto
+    WHERE ID_Usuario = %s AND MONTH(Fecha) = %s AND YEAR(Fecha) = %s
+    """
+    cursor.execute(query, (user_id, mes, año))
+    gastos = cursor.fetchall()
+
+    connection.close()
+    return jsonify(gastos), 200
+
+@app.route('/api/totales_financieros', methods=['GET'])
+@jwt_required()
+def obtener_totales_financieros():
+    user_id = get_jwt_identity()
+    filters = request.args
+    mes = filters.get('mes')
+    año = filters.get('año')
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Consulta para obtener los totales de ingresos y gastos por mes
+    query_ingresos = """
+    SELECT 
+        MONTH(Fecha) as mes, 
+        YEAR(Fecha) as año, 
+        SUM(Monto) as total_ingresos
+    FROM Ingreso
+    WHERE ID_Usuario = %s
+    GROUP BY YEAR(Fecha), MONTH(Fecha)
+    ORDER BY YEAR(Fecha), MONTH(Fecha)
+    """
+
+    query_gastos = """
+    SELECT 
+        MONTH(Fecha) as mes, 
+        YEAR(Fecha) as año, 
+        SUM(Monto) as total_gastos
+    FROM Gasto
+    WHERE ID_Usuario = %s
+    GROUP BY YEAR(Fecha), MONTH(Fecha)
+    ORDER BY YEAR(Fecha), MONTH(Fecha)
+    """
+
+    # Ejecutar las consultas y obtener los resultados
+    cursor.execute(query_ingresos, (user_id,))
+    ingresos_por_mes = cursor.fetchall()
+
+    cursor.execute(query_gastos, (user_id,))
+    gastos_por_mes = cursor.fetchall()
+
+    # Combinar los datos de ingresos y gastos en una sola lista
+    monthly_totals = []
+    ingresos_dict = {(ingreso['año'], ingreso['mes']): ingreso['total_ingresos'] for ingreso in ingresos_por_mes}
+    gastos_dict = {(gasto['año'], gasto['mes']): gasto['total_gastos'] for gasto in gastos_por_mes}
+
+    for (año, mes) in set(ingresos_dict.keys()).union(gastos_dict.keys()):
+        monthly_totals.append({
+            'año': año,
+            'mes': mes,
+            'total_ingresos': ingresos_dict.get((año, mes), 0),
+            'total_gastos': gastos_dict.get((año, mes), 0)
+        })
+
+    # Ordenar los resultados por año y mes
+    monthly_totals = sorted(monthly_totals, key=lambda x: (x['año'], x['mes']))
+
+    connection.close()
+    return jsonify(monthly_totals), 200
+
+
+
+@app.route('/api/totales_financieros_mes', methods=['GET'])
+@jwt_required()
+def obtener_totales_financieros_mes():
+    user_id = get_jwt_identity()
+    mes = request.args.get('mes')
+    año = request.args.get('año')
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    # Consulta para obtener el total de ingresos para el mes y año seleccionados
+    query_ingresos = """
+    SELECT SUM(Monto) as total_ingresos
+    FROM Ingreso
+    WHERE ID_Usuario = %s AND MONTH(Fecha) = %s AND YEAR(Fecha) = %s
+    """
+    cursor.execute(query_ingresos, (user_id, mes, año))
+    total_ingresos = cursor.fetchone()['total_ingresos'] or 0
+
+    # Consulta para obtener el total de gastos para el mes y año seleccionados
+    query_gastos = """
+    SELECT SUM(Monto) as total_gastos
+    FROM Gasto
+    WHERE ID_Usuario = %s AND MONTH(Fecha) = %s AND YEAR(Fecha) = %s
+    """
+    cursor.execute(query_gastos, (user_id, mes, año))
+    total_gastos = cursor.fetchone()['total_gastos'] or 0
+
+    connection.close()
+
+    return jsonify({"total_ingresos": total_ingresos, "total_gastos": total_gastos}), 200
 
 
 
