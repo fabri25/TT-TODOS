@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import '../styles/CreateGroup.css';
-import GroupCreationModal from './GroupCreationModal'; // Importar el nuevo modal
+import GroupCreationModal from './GroupCreationModal';
 
 const CreateGroup = () => {
   const [groupName, setGroupName] = useState('');
@@ -23,13 +24,39 @@ const CreateGroup = () => {
     setMembers(members.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Genera un enlace de invitación simulado (reemplazar por lógica de API en producción)
-    const generatedLink = `https://tuapp.com/invite/${Math.random().toString(36).substring(2, 8)}`;
-    setInvitationLink(generatedLink);
-    setShowSuccessModal(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No se encontró el token de autenticación.");
+        return;
+      }
+
+      const response = await axios.post(
+        'http://127.0.0.1:5000/api/crear_grupo',
+        {
+          nombre_grupo: groupName,
+          descripcion: description,
+          miembros: members.filter(email => email !== '')
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.status === 201) {
+        setInvitationLink(response.data.invitationLink);
+        setShowSuccessModal(true);
+      } else {
+        console.error("Error al crear el grupo:", response.data.error);
+      }
+    } catch (error) {
+      console.error("Error al crear el grupo:", error);
+    }
   };
 
   const closeModal = () => {
@@ -44,7 +71,7 @@ const CreateGroup = () => {
       <h2>Crear un Nuevo Grupo</h2>
       <form onSubmit={handleSubmit} className="create-group-form">
         <div className="form-group">
-          <label>Nombre del Grupo:</label><br></br><br></br>
+          <label>Nombre del Grupo:</label><br /><br />
           <input
             type="text"
             value={groupName}
@@ -54,14 +81,14 @@ const CreateGroup = () => {
         </div>
         
         <div className="form-group">
-          <label>Descripción:</label><br></br><br></br>
+          <label>Descripción:</label><br /><br />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           ></textarea>
         </div>
         
-        <div className="form-group"><br></br><br></br>
+        <div className="form-group"><br /><br />
           <label>Miembros (Emails):</label>
           {members.map((member, index) => (
             <div key={index} className="member-input">
@@ -91,7 +118,7 @@ const CreateGroup = () => {
       </form>
 
       {showSuccessModal && (
-        <GroupCreationModal // Usar el componente GroupCreationModal
+        <GroupCreationModal
           invitationLink={invitationLink}
           onClose={closeModal}
         />

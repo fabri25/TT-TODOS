@@ -8,6 +8,10 @@ from dateutil.relativedelta import relativedelta
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import secrets
+import random
+import string
+
+
 
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas y dominios
@@ -990,6 +994,81 @@ def obtener_totales_financieros_mes():
     return jsonify({"total_ingresos": total_ingresos, "total_gastos": total_gastos}), 200
 
 
+def generate_unique_code(cursor):
+    while True:
+        # Generar un código alfanumérico de 8 caracteres en mayúsculas
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        # Verificar si el código ya existe en la tabla 'Grupo'
+        cursor.execute("SELECT COUNT(*) as count FROM Grupo WHERE Codigo_Invitacion = %s", (code,))
+        result = cursor.fetchone()
+        if result["count"] == 0:  # Verificamos el conteo usando la clave del diccionario
+            return code
+
+
+@app.route('/api/crear_grupo', methods=['POST'])
+@jwt_required()
+def crear_grupo():
+    data = request.json
+    nombre_grupo = data.get('nombre_grupo')
+    descripcion = data.get('descripcion')
+    miembros = data.get('miembros', [])
+    user_id = get_jwt_identity()  # Obtener el ID del usuario que está creando el grupo
+
+    connection = create_connection()
+    cursor = connection.cursor(dictionary=True)
+    
+    try:
+        # Obtener el correo del usuario que está creando el grupo
+        cursor.execute("SELECT Email FROM Usuario WHERE ID_Usuario = %s", (user_id,))
+        user_data = cursor.fetchone()
+        if not user_data:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+        user_email = user_data["Email"]
+        print(f"Correo del usuario creador: {user_email}")  # Verificar que se obtiene el correo correctamente
+
+        # Generar un código de invitación único
+        codigo_invitacion = generate_unique_code(cursor)
+
+        # Insertar el grupo en la tabla `Grupo`
+        cursor.execute("""
+            INSERT INTO Grupo (Nombre_Grupo, Descripcion, ID_Admin, Codigo_Invitacion)
+            VALUES (%s, %s, %s, %s)
+        """, (nombre_grupo, descripcion, user_id, codigo_invitacion))
+        connection.commit()
+
+        # Obtener el ID del grupo recién creado
+        grupo_id = cursor.lastrowid
+
+        # Insertar al usuario creador como miembro del grupo con su correo
+        cursor.execute("""
+            INSERT INTO Miembro_Grupo (ID_Usuario, ID_Grupo, Email)
+            VALUES (%s, %s, %s)
+        """, (user_id, grupo_id, user_email))
+        
+        # Procesar los miembros adicionales
+        for email in miembros:
+            cursor.execute("SELECT ID_Usuario FROM Usuario WHERE Email = %s", (email,))
+            usuario = cursor.fetchone()
+            id_usuario = usuario['ID_Usuario'] if usuario else None
+
+            cursor.execute("""
+                INSERT INTO Miembro_Grupo (ID_Usuario, ID_Grupo, Email)
+                VALUES (%s, %s, %s)
+            """, (id_usuario, grupo_id, email))
+        
+        connection.commit()
+
+        # Devolver el enlace de invitación
+        invitation_link = f"https://tuapp.com/invite/{codigo_invitacion}"
+        return jsonify({"message": "Grupo creado exitosamente", "invitationLink": invitation_link}), 201
+    
+    except mysql.connector.Error as e:
+        connection.rollback()
+        return jsonify({"error": f"Error al crear el grupo: {str(e)}"}), 500
+    
+    finally:
+        cursor.close()
+        connection.close()
 
 
 if __name__ == '__main__':
