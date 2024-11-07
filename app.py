@@ -85,6 +85,18 @@ def login():
         # Crear token de acceso JWT
         access_token = create_access_token(identity=user_id)
 
+        # Verificar si el usuario pertenece a algún grupo o es administrador de uno
+        pertenece_a_grupo = False
+        es_admin_grupo = False
+
+        # Verificar si es administrador de algún grupo
+        cursor.execute("SELECT 1 FROM Grupo WHERE ID_Admin = %s LIMIT 1", (user_id,))
+        es_admin_grupo = cursor.fetchone() is not None
+
+        # Verificar si es miembro de algún grupo
+        cursor.execute("SELECT 1 FROM Miembro_Grupo WHERE ID_Usuario = %s OR Email = %s LIMIT 1", (user_id, email))
+        pertenece_a_grupo = cursor.fetchone() is not None
+
         # Verificar si el usuario tiene ingresos registrados
         query_income = """
         SELECT ID_Ingreso, Descripcion, Monto, Fecha, Periodicidad, EsFijo 
@@ -94,102 +106,58 @@ def login():
         cursor.execute(query_income, (user_id,))
         incomes = cursor.fetchall()
 
-        if incomes:
-            mostrar_tab_periodo = False
-            descripcion = None
-            fecha_ultimo_ingreso = None
+        hasIncome = bool(incomes)
+        mostrar_tab_periodo = False
+        descripcion = None
+        fecha_ultimo_ingreso = None
 
-            # Establecer hasIncome en True porque ya tiene ingresos registrados
-            hasIncome = True
+        if hasIncome:
             print(f"El usuario tiene {len(incomes)} ingresos registrados.")
-
             # Agrupar ingresos no fijos por descripción y seleccionar el más reciente
-            ingresos_no_fijos = {}
-            for income in incomes:
-                if income['EsFijo'] == 0:
-                    descripcion = income['Descripcion']
-                    if descripcion not in ingresos_no_fijos or income['Fecha'] > ingresos_no_fijos[descripcion]['Fecha']:
-                        ingresos_no_fijos[descripcion] = income
+            ingresos_no_fijos = {income['Descripcion']: income for income in incomes if income['EsFijo'] == 0}
 
             # Verificar si hay ingresos no fijos registrados
-            if not ingresos_no_fijos:
-                connection.close()
-                print("No tiene ingresos no fijos, no se mostrará ninguna ventana flotante.")
-                return jsonify({
-                    "message": "Login exitoso",
-                    "token": access_token,  # Retornar el token en la respuesta
-                    "user": user,
-                    "hasIncome": hasIncome,
-                    "showFloatingTabIncome": False,
-                    "showFloatingTab": False
-                }), 200
-
-            # Verificar cada ingreso no fijo para determinar si se debe mostrar la ventana flotante de periodicidad
-            for descripcion, income in ingresos_no_fijos.items():
-                fecha_ultimo_ingreso = income['Fecha']
-                periodicidad = income['Periodicidad']
-
-                print(f"Fecha del último ingreso para {descripcion}: {fecha_ultimo_ingreso}")
-                print(f"Periodicidad: {periodicidad}")
+            if ingresos_no_fijos:
+                for descripcion, income in ingresos_no_fijos.items():
+                    fecha_ultimo_ingreso = income['Fecha']
+                    periodicidad = income['Periodicidad']
                     
-                # Determinar la fecha de comparación en base a la periodicidad
-                if periodicidad == 'Diario':
-                    fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(days=1)
-                elif periodicidad == 'Semanal':
-                    fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(weeks=1)
-                elif periodicidad == 'Quincenal':
-                    fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(weeks=2)
-                elif periodicidad == 'Mensual':
-                    fecha_siguiente_ingreso = fecha_ultimo_ingreso + relativedelta(months=1)
+                    # Calcular la fecha de comparación según la periodicidad
+                    if periodicidad == 'Diario':
+                        fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(days=1)
+                    elif periodicidad == 'Semanal':
+                        fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(weeks=1)
+                    elif periodicidad == 'Quincenal':
+                        fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(weeks=2)
+                    elif periodicidad == 'Mensual':
+                        fecha_siguiente_ingreso = fecha_ultimo_ingreso + relativedelta(months=1)
 
-                fecha_actual = datetime.now().date()
-                print(f"Fecha actual: {fecha_actual}")
-                print(f"Fecha siguiente ingreso para {descripcion}: {fecha_siguiente_ingreso}")
+                    if datetime.now().date() >= fecha_siguiente_ingreso:
+                        mostrar_tab_periodo = True
+                        break
 
-                if fecha_actual >= fecha_siguiente_ingreso:
-                    mostrar_tab_periodo = True
-                    break  # Si se debe mostrar la ventana de periodo, no es necesario seguir iterando
+        connection.close()
 
-            connection.close()
+        # Generar la respuesta final sin almacenar en localStorage
+        response_data = {
+            "message": "Login exitoso",
+            "token": access_token,
+            "user": user,
+            "hasIncome": hasIncome,
+            "showFloatingTabIncome": mostrar_tab_periodo,
+            "descripcionIngreso": descripcion,
+            "fechaUltimoIngreso": fecha_ultimo_ingreso.strftime('%d/%m/%Y') if fecha_ultimo_ingreso else None,
+            "showFloatingTab": not hasIncome and not incomes,
+            "pertenece_a_grupo": pertenece_a_grupo,
+            "es_admin_grupo": es_admin_grupo
+        }
 
-            if mostrar_tab_periodo:
-                print("Mostrar ventana flotante para actualizar ingreso según el periodo.")
-                return jsonify({
-                    "message": "Login exitoso",
-                    "token": access_token,  # Retornar el token en la respuesta
-                    "user": user,
-                    "hasIncome": hasIncome,  # Indicar que tiene ingresos
-                    "showFloatingTabIncome": True,
-                    "descripcionIngreso": descripcion,
-                    "fechaUltimoIngreso": fecha_ultimo_ingreso.strftime('%d/%m/%Y')
-                }), 200
-            else:
-                print("No se mostrará ninguna ventana flotante.")
-                return jsonify({
-                    "message": "Login exitoso",
-                    "token": access_token,  # Retornar el token en la respuesta
-                    "user": user,
-                    "hasIncome": hasIncome,  # Indicar que tiene ingresos
-                    "showFloatingTabIncome": False,
-                    "showFloatingTab": False  # No mostrar la tab de captura inicial si ya tiene ingresos
-                }), 200
-        else:
-            # Si no tiene ningún ingreso registrado, se debe mostrar la ventana para capturar ingresos iniciales
-            hasIncome = False
-            connection.close()
-            print("No tiene ingresos registrados, mostrar ventana para capturar ingresos iniciales.")
-            return jsonify({
-                "message": "Login exitoso",
-                "token": access_token,  # Retornar el token en la respuesta
-                "user": user,
-                "hasIncome": hasIncome,  # Indicar que no tiene ingresos
-                "showFloatingTabIncome": False,
-                "showFloatingTab": True  # Mostrar la ventana para capturar los ingresos iniciales
-            }), 200
+        return jsonify(response_data), 200
     else:
         connection.close()
-        print("Correo o contraseña incorrectos.")
         return jsonify({"error": "Correo o contraseña incorrectos"}), 401
+
+
 
 # FUNCION DE REGISTRO DE USUARIOS (No protegida)
 @app.route('/api/register', methods=['POST'])
@@ -1024,7 +992,6 @@ def crear_grupo():
         if not user_data:
             return jsonify({"error": "Usuario no encontrado"}), 404
         user_email = user_data["Email"]
-        print(f"Correo del usuario creador: {user_email}")  # Verificar que se obtiene el correo correctamente
 
         # Generar un código de invitación único
         codigo_invitacion = generate_unique_code(cursor)
@@ -1041,21 +1008,25 @@ def crear_grupo():
 
         # Insertar al usuario creador como miembro del grupo con su correo
         cursor.execute("""
-            INSERT INTO Miembro_Grupo (ID_Usuario, ID_Grupo, Email)
-            VALUES (%s, %s, %s)
-        """, (user_id, grupo_id, user_email))
+            INSERT INTO Miembro_Grupo (ID_Usuario, ID_Grupo, Email, Confirmado)
+            VALUES (%s, %s, %s, %s)
+        """, (user_id, grupo_id, user_email, 1))  # Confirmado = 1 para el creador del grupo
         
-        # Procesar los miembros adicionales
+        # Procesar los miembros adicionales y enviarles una invitación por correo
         for email in miembros:
             cursor.execute("SELECT ID_Usuario FROM Usuario WHERE Email = %s", (email,))
             usuario = cursor.fetchone()
             id_usuario = usuario['ID_Usuario'] if usuario else None
 
+            # Insertar el miembro en la tabla Miembro_Grupo con Confirmado = 0
             cursor.execute("""
-                INSERT INTO Miembro_Grupo (ID_Usuario, ID_Grupo, Email)
-                VALUES (%s, %s, %s)
-            """, (id_usuario, grupo_id, email))
-        
+                INSERT INTO Miembro_Grupo (ID_Usuario, ID_Grupo, Email, Confirmado)
+                VALUES (%s, %s, %s, %s)
+            """, (id_usuario, grupo_id, email, 0))
+
+            # Enviar correo de invitación
+            send_invitation_email(email, grupo_id, nombre_grupo)
+
         connection.commit()
 
         # Devolver el enlace de invitación
@@ -1069,6 +1040,48 @@ def crear_grupo():
     finally:
         cursor.close()
         connection.close()
+
+
+def send_invitation_email(email, grupo_id, nombre_grupo):
+    # URL para que el usuario acepte la invitación
+    accept_url = f"http://localhost:5000/api/accept_invitation?grupo_id={grupo_id}&email={email}"
+    msg = Message(
+        subject="Invitación a unirse al grupo financiero",
+        sender="tu_correo@example.com",
+        recipients=[email],
+        body=f"Has sido invitado a unirte al grupo '{nombre_grupo}'. Haz clic en el siguiente enlace para aceptar la invitación:\n{accept_url}"
+    )
+    mail.send(msg)       
+        
+    
+@app.route('/api/accept_invitation', methods=['GET'])
+def accept_invitation():
+    grupo_id = request.args.get('grupo_id')
+    email = request.args.get('email')
+
+    connection = create_connection()
+    cursor = connection.cursor()
+
+    try:
+        # Actualizar el campo Confirmado a 1 para el miembro
+        cursor.execute("""
+            UPDATE Miembro_Grupo
+            SET Confirmado = 1
+            WHERE ID_Grupo = %s AND Email = %s
+        """, (grupo_id, email))
+        connection.commit()
+
+        return jsonify({"message": "Invitación aceptada exitosamente"}), 200
+    
+    except mysql.connector.Error as e:
+        connection.rollback()
+        return jsonify({"error": f"Error al aceptar la invitación: {str(e)}"}), 500
+    
+    finally:
+        cursor.close()
+        connection.close()
+
+
 
 
 if __name__ == '__main__':

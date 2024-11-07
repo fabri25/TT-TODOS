@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import backgroundImage from '../assets/images/background.jpg';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import '../styles/Register.css'; 
+import '../styles/Register.css';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ const Login = () => {
       console.log(response.data);  // Verificar qué datos están regresando
 
       if (response.status === 200 && response.data) {
-        const { token, user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso } = response.data;
+        const { token, user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso, pertenece_a_grupo, es_admin_grupo } = response.data;
 
         // Guardar el token en el almacenamiento local
         localStorage.setItem('token', token);
@@ -40,6 +40,10 @@ const Login = () => {
         // Guardar el ID del usuario y el estado hasIncome en el almacenamiento local
         localStorage.setItem('userID', user.ID_Usuario);
         localStorage.setItem('hasIncome', hasIncome);
+
+        // Guardar las variables de pertenencia a grupo y rol de administrador en el almacenamiento local
+        localStorage.setItem('pertenece_a_grupo', pertenece_a_grupo);
+        localStorage.setItem('es_admin_grupo', es_admin_grupo);
 
         // Si se debe mostrar la ventana flotante de ingreso
         if (showFloatingTabIncome) {
