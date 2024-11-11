@@ -16,7 +16,10 @@ import AddIncome from './components/AddIncomeModal';
 import ExpenseDashboard from './components/ExpenseDashboard';
 import AddExpense from './components/AddExpenseModal';
 import CreateGroup from './components/CreateGroup';
-
+//import AddExpense from './components/AddExpenseModal';
+import FinancialGoals from './components/FinancialGoals';
+import RegisterGoal from './components/RegisterGoal';
+import CheckFinancialData from './components/CheckFinancialData';
 
 function App() {
   return (
@@ -42,7 +45,9 @@ function App() {
             <Route path="add-income" element={<AddIncome />} />
             <Route path="add-expense" element={<AddExpense />} />
             <Route path="grupo/crear" element={<CreateGroup />} /> {/* Nueva ruta */}
-
+            <Route path="/dashboard/validar-datos-financieros" element={<CheckFinancialData />} /> 
+            <Route path="/dashboard/metas-financieras" element={<FinancialGoals />} />
+            <Route path="/dashboard/registrar-meta" element={<RegisterGoal />} />
           </Route>
         </Routes>
       </div>
