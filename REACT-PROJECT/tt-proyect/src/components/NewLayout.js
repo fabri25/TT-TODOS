@@ -14,6 +14,8 @@ const NewLayout = () => {
   const [fechaUltimoIngreso, setFechaUltimoIngreso] = useState('');
   const [perteneceAGrupo, setPerteneceAGrupo] = useState(false);
   const [esAdminGrupo, setEsAdminGrupo] = useState(false);
+  const [misGrupos, setMisGrupos] = useState([]);
+  const [gruposAdmin, setGruposAdmin] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,29 +40,21 @@ const NewLayout = () => {
     const perteneceAGrupoLocal = localStorage.getItem('pertenece_a_grupo') === 'true';
     const esAdminGrupoLocal = localStorage.getItem('es_admin_grupo') === 'true';
 
-    // Asignar los valores de grupo a los estados locales
     setPerteneceAGrupo(perteneceAGrupoLocal);
     setEsAdminGrupo(esAdminGrupoLocal);
 
-    console.log("Es administrador de grupo:", esAdminGrupoLocal);
-    console.log("Pertenece a un grupo:", perteneceAGrupoLocal);
+    const gruposUsuario = JSON.parse(localStorage.getItem('mis_grupos') || '[]');
+    const gruposAdministrador = JSON.parse(localStorage.getItem('grupos_admin') || '[]');
 
-    // Mostrar ventanas flotantes según estado de ingresos
+    setMisGrupos(gruposUsuario);
+    setGruposAdmin(gruposAdministrador);
+
     if (!hasIncome) {
       setShowFloatingTab(true);
     } else if (showIncomeTab) {
       setDescripcionIngreso(localStorage.getItem('descripcionIngreso') || '');
       setFechaUltimoIngreso(localStorage.getItem('fechaUltimoIngreso') || '');
       setShowFloatingTabIncome(true);
-    }
-
-    // Decidir opciones de menú lateral
-    if (esAdminGrupoLocal && perteneceAGrupoLocal) {
-      console.log("Mostrar opciones: Mis Grupos, Crear Grupo, Unirse a un Grupo, Configuración de Grupo");
-    } else if (perteneceAGrupoLocal) {
-      console.log("Mostrar opciones: Mis Grupos, Crear Grupo, Unirse a un Grupo");
-    } else {
-      console.log("Mostrar opciones: Crear Grupo, Unirse a un Grupo");
     }
   }, [navigate]);
 
@@ -91,14 +85,12 @@ const NewLayout = () => {
         </div>
         <div className="sidebar-content">
           <ul className="nav-menu nav-lateral-list-menu">
-            {/* Inicio */}
             <li className={`menu-item ${activeMenu === 'inicio' ? 'active' : ''}`}>
               <Link to="/dashboard/inicio" onClick={() => setActiveMenu('inicio')}>
                 <i className="bi bi-house"></i> Inicio
               </Link>
             </li>
 
-            {/* Tus Finanzas */}
             <li className={`menu-item ${activeMenu === 'finanzas' ? 'active' : ''}`} onClick={() => toggleMenu('finanzas')}>
               <div className="dropdown-menu-button">
                 <i className="bi bi-graph-up"></i> Tus Finanzas <i className={`bi bi-chevron-${activeMenu === 'finanzas' ? 'up' : 'down'}`}></i>
@@ -111,40 +103,31 @@ const NewLayout = () => {
               </ul>
             </li>
 
-            {/* Grupos Financieros */}
-            {perteneceAGrupo ? (
-              <li className={`menu-item ${activeMenu === 'grupo' ? 'active' : ''}`} onClick={() => toggleMenu('grupo')}>
-                <div className="dropdown-menu-button">
-                  <i className="bi bi-people"></i> Grupos Financieros <i className={`bi bi-chevron-${activeMenu === 'grupo' ? 'up' : 'down'}`}></i>
-                </div>
-                <ul className={`dropdown-menu ${activeMenu === 'grupo' ? 'show' : ''}`}>
-                  <li><Link to="/dashboard/grupo/mis-grupos">Mis Grupos</Link></li>
-                  <li><Link to="/dashboard/grupo/crear">Crear Grupo</Link></li>
-                  <li><Link to="/dashboard/grupo/unirse">Unirse a un Grupo</Link></li>
-                  {esAdminGrupo && <li><Link to="/dashboard/grupo/configurar">Configuración de Grupo</Link></li>}
-                </ul>
-              </li>
-            ) : (
-              <li className={`menu-item ${activeMenu === 'grupo' ? 'active' : ''}`} onClick={() => toggleMenu('grupo')}>
-                <div className="dropdown-menu-button">
-                  <i className="bi bi-people"></i> Grupos Financieros <i className={`bi bi-chevron-${activeMenu === 'grupo' ? 'up' : 'down'}`}></i>
-                </div>
-                <ul className={`dropdown-menu ${activeMenu === 'grupo' ? 'show' : ''}`}>
-                  <li><Link to="/dashboard/grupo/crear">Crear Grupo</Link></li>
-                  <li><Link to="/dashboard/grupo/unirse">Unirse a un Grupo</Link></li>
-                </ul>
-              </li>
-            )}
-
-            {/* Metas Financieras */}
-            <li className={`menu-item ${activeMenu === 'metas' ? 'active' : ''}`} onClick={() => toggleMenu('metas')}>
+            <li className={`menu-item ${activeMenu === 'grupo' ? 'active' : ''}`} onClick={() => toggleMenu('grupo')}>
               <div className="dropdown-menu-button">
-                <i className="bi bi-check-square"></i> Metas Financieras <i className={`bi bi-chevron-${activeMenu === 'metas' ? 'up' : 'down'}`}></i>
+                <i className="bi bi-people"></i> Grupos Financieros <i className={`bi bi-chevron-${activeMenu === 'grupo' ? 'up' : 'down'}`}></i>
               </div>
-              <ul className={`dropdown-menu ${activeMenu === 'metas' ? 'show' : ''}`}>
-                <li><Link to="/dashboard/metas/registro">Registro de Metas</Link></li>
-                <li><Link to="/dashboard/metas/seguimiento">Seguimiento de Metas</Link></li>
-                <li><Link to="/dashboard/metas/analisis">Análisis de Metas</Link></li>
+              <ul className={`dropdown-menu ${activeMenu === 'grupo' ? 'show' : ''}`}>
+                <li className="submenu-item">
+                  <span>Mis Grupos {'>'}</span>
+                  <ul className="submenu">
+                    {misGrupos.map((grupo) => (
+                      <li key={grupo.ID_Grupo}><Link to={`/dashboard/grupo/${grupo.ID_Grupo}`}>{grupo.Nombre_Grupo}</Link></li>
+                    ))}
+                  </ul>
+                </li>
+                <li><Link to="/dashboard/grupo/crear">Crear Grupo</Link></li>
+                <li><Link to="/dashboard/grupo/unirse">Unirse a un Grupo</Link></li>
+                {esAdminGrupo && (
+                  <li className="submenu-item">
+                    <span>Configuración de Grupo {'>'}</span>
+                    <ul className="submenu">
+                      {gruposAdmin.map((grupo) => (
+                        <li key={grupo.ID_Grupo}><Link to={`/dashboard/grupo/configurar/${grupo.ID_Grupo}`}>{grupo.Nombre_Grupo}</Link></li>
+                      ))}
+                    </ul>
+                  </li>
+                )}
               </ul>
             </li>
           </ul>

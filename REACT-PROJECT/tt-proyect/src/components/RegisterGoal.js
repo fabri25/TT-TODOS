@@ -30,7 +30,7 @@ const RegisterGoal = () => {
       });
       setPromedios(response.data);
       if (response.data.disponible_para_metas < 0) {
-        alert("Se recomienda que tengas más ingresos que gastos para una mejor gestión financiera.");
+        //alert("Se recomienda que tengas más ingresos que gastos para una mejor gestión financiera.");
         navigate('/'); // Redirigir a la página principal
       }
     } catch (error) {
@@ -97,7 +97,7 @@ const RegisterGoal = () => {
         calcularFechaTermino(goal.fechaInicio, mesesNecesarios);
       }
     } else {
-      alert("El monto disponible para metas es insuficiente para calcular un plan de ahorro.");
+      //alert("El monto disponible para metas es insuficiente para calcular un plan de ahorro.");
     }
   };
   

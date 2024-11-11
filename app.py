@@ -88,14 +88,27 @@ def login():
         # Verificar si el usuario pertenece a algún grupo o es administrador de uno
         pertenece_a_grupo = False
         es_admin_grupo = False
+        grupos_administrados = []
+        grupos_pertenecientes = []
 
         # Verificar si es administrador de algún grupo
-        cursor.execute("SELECT 1 FROM Grupo WHERE ID_Admin = %s LIMIT 1", (user_id,))
-        es_admin_grupo = cursor.fetchone() is not None
+        cursor.execute("SELECT ID_Grupo, Nombre_Grupo FROM Grupo WHERE ID_Admin = %s", (user_id,))
+        grupos_admin = cursor.fetchall()
+        if grupos_admin:
+            es_admin_grupo = True
+            grupos_administrados = grupos_admin
 
         # Verificar si es miembro de algún grupo
-        cursor.execute("SELECT 1 FROM Miembro_Grupo WHERE ID_Usuario = %s OR Email = %s LIMIT 1", (user_id, email))
-        pertenece_a_grupo = cursor.fetchone() is not None
+        cursor.execute("""
+            SELECT g.ID_Grupo, g.Nombre_Grupo 
+            FROM Grupo g
+            JOIN Miembro_Grupo mg ON g.ID_Grupo = mg.ID_Grupo
+            WHERE mg.ID_Usuario = %s OR mg.Email = %s
+        """, (user_id, email))
+        grupos_miembro = cursor.fetchall()
+        if grupos_miembro:
+            pertenece_a_grupo = True
+            grupos_pertenecientes = grupos_miembro
 
         # Verificar si el usuario tiene ingresos registrados
         query_income = """
@@ -149,13 +162,17 @@ def login():
             "fechaUltimoIngreso": fecha_ultimo_ingreso.strftime('%d/%m/%Y') if fecha_ultimo_ingreso else None,
             "showFloatingTab": not hasIncome and not incomes,
             "pertenece_a_grupo": pertenece_a_grupo,
-            "es_admin_grupo": es_admin_grupo
+            "es_admin_grupo": es_admin_grupo,
+            "grupos_administrados": grupos_administrados,
+            "grupos_pertenecientes": grupos_pertenecientes
         }
 
         return jsonify(response_data), 200
     else:
         connection.close()
         return jsonify({"error": "Correo o contraseña incorrectos"}), 401
+
+
 
 
 
