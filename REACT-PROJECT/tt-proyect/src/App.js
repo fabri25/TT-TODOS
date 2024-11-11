@@ -14,9 +14,10 @@ import EditIncome from './components/EditIncome';  // Importa el componente de e
 import IncomeDashboard from './components/IncomeDashboard';
 import AddIncome from './components/AddIncomeModal';  // Componente de agregar ingreso
 import ExpenseDashboard from './components/ExpenseDashboard'; // Componente de gastos
-import AddExpense from './components/AddExpenseModal';
-
-
+//import AddExpense from './components/AddExpenseModal';
+import FinancialGoals from './components/FinancialGoals';
+import RegisterGoal from './components/RegisterGoal';
+import CheckFinancialData from './components/CheckFinancialData';
 
 function App() {
   return (
@@ -40,7 +41,10 @@ function App() {
             <Route path="gastos" element={<ExpenseDashboard />} /> {/* Nuevo componente */}
             <Route path="/dashboard/edit-income/:id" element={<EditIncome />} />
             <Route path="/dashboard/add-income" element={<AddIncome />} />  
-            <Route path="add-expense" element={<AddExpense />} /> {/* Nueva ruta para agregar gasto */}
+          
+            <Route path="/dashboard/validar-datos-financieros" element={<CheckFinancialData />} /> 
+            <Route path="/dashboard/metas-financieras" element={<FinancialGoals />} />
+            <Route path="/dashboard/registrar-meta" element={<RegisterGoal />} />
           </Route>
         </Routes>
       </div>

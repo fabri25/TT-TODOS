@@ -828,6 +828,133 @@ def obtener_subcategorias(categoria):
     # Retornar el ID y el Nombre de cada subcategoría
     return jsonify(subcategorias), 200
 
+    # Obtener metas financieras
+@app.route('/api/metas', methods=['GET'])
+@jwt_required()
+def obtener_metas():
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor(dictionary=True)
+    query = """
+        SELECT ID_Meta, Nombre, MontoObjetivo, FechaInicio, FechaTermino, MesesParaMeta, AhorroMensual 
+        FROM Metas 
+        WHERE ID_Usuario = %s
+    """
+    cursor.execute(query, (user_id,))
+    metas = cursor.fetchall()
+    
+    connection.close()
+    return jsonify(metas), 200
+
+
+#Crear metas
+@app.route('/api/metas', methods=['POST'])
+@jwt_required()
+def crear_meta():
+    user_id = get_jwt_identity()
+    data = request.json
+    nombre = data.get('nombre')
+    monto_objetivo = data.get('montoObjetivo')
+    fecha_inicio = data.get('fechaInicio')
+    fecha_termino = data.get('fechaTermino')
+    meses_para_meta = data.get('mesesParaMeta')
+    ahorro_mensual = data.get('ahorroMensual')
+    
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor()
+    query = """
+        INSERT INTO Metas (ID_Usuario, Nombre, MontoObjetivo, FechaInicio, FechaTermino, MesesParaMeta, AhorroMensual)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    cursor.execute(query, (user_id, nombre, monto_objetivo, fecha_inicio, fecha_termino, meses_para_meta, ahorro_mensual))
+    connection.commit()
+    
+    connection.close()
+    return jsonify({"message": "Meta creada exitosamente"}), 201
+
+
+
+@app.route('/api/validar-ingresos-gastos', methods=['GET'])
+@jwt_required()
+def validar_ingresos_gastos():
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor(dictionary=True)
+    
+    # Contar ingresos del usuario
+    query_ingresos = "SELECT COUNT(*) as total FROM Ingreso WHERE ID_Usuario = %s"
+    cursor.execute(query_ingresos, (user_id,))
+    total_ingresos = cursor.fetchone()['total']
+    
+    # Contar gastos del usuario
+    query_gastos = "SELECT COUNT(*) as total FROM Gasto WHERE ID_Usuario = %s"
+    cursor.execute(query_gastos, (user_id,))
+    total_gastos = cursor.fetchone()['total']
+    
+    connection.close()
+    
+    if total_ingresos >= 3 and total_gastos >= 3:
+        return jsonify({"valido": True}), 200
+    else:
+        return jsonify({"valido": False}), 200
+
+@app.route('/api/promedios', methods=['GET'])
+@jwt_required()
+def obtener_promedios():
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor(dictionary=True)
+    
+    # Calcular promedio de ingresos del usuario
+    query_promedio_ingresos = "SELECT AVG(Monto) as promedio_ingresos FROM Ingreso WHERE ID_Usuario = %s"
+    cursor.execute(query_promedio_ingresos, (user_id,))
+    promedio_ingresos = cursor.fetchone()['promedio_ingresos']
+    
+    # Calcular promedio de gastos del usuario
+    query_promedio_gastos = "SELECT AVG(Monto) as promedio_gastos FROM Gasto WHERE ID_Usuario = %s"
+    cursor.execute(query_promedio_gastos, (user_id,))
+    promedio_gastos = cursor.fetchone()['promedio_gastos']
+    
+    connection.close()
+    
+    # Calcular el valor disponible para metas
+    disponible_para_metas = promedio_ingresos - promedio_gastos
+    
+    return jsonify({
+        "promedio_ingresos": promedio_ingresos,
+        "promedio_gastos": promedio_gastos,
+        "disponible_para_metas": disponible_para_metas
+    }), 200
+
+# Eliminar meta financiera
+@app.route('/api/metas/<int:id_meta>', methods=['DELETE'])
+@jwt_required()
+def eliminar_meta(id_meta):
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor()
+    query = "DELETE FROM Metas WHERE ID_Meta = %s AND ID_Usuario = %s"
+    cursor.execute(query, (id_meta, user_id))
+    connection.commit()
+    
+    connection.close()
+    return jsonify({"message": "Meta eliminada exitosamente"}), 200
+
 
 
 
