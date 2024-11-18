@@ -43,6 +43,10 @@ const VisualizarMetas = () => {
     }
   };
 
+  const handleViewDetails = (id_meta) => {
+    navigate(`/dashboard/metas/${id_meta}`);
+  };
+
   return (
     <div className="metas-container">
       <h2>Mis Metas Financieras</h2>
@@ -57,8 +61,8 @@ const VisualizarMetas = () => {
               <th>Nombre</th>
               <th>Monto Objetivo</th>
               <th>Fecha de Inicio</th>
-              <th>Fecha de Término</th>
-              <th>Ahorro Mensual</th>
+              <th>Fecha de Término (Estimada)</th>
+              <th>Ahorro Mensual (Estimada)</th>
               <th>Meses para Alcanzar</th>
               <th>Acciones</th>
             </tr>
@@ -73,6 +77,7 @@ const VisualizarMetas = () => {
                 <td>{parseFloat(meta.AhorroMensual).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</td>
                 <td>{meta.MesesParaMeta}</td>
                 <td>
+                  <button className="details-button" onClick={() => handleViewDetails(meta.ID_Meta)}>Ver Detalles</button>
                   <button className="delete-button" onClick={() => handleDelete(meta.ID_Meta)}>Eliminar</button>
                 </td>
               </tr>

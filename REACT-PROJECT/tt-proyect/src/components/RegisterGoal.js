@@ -31,7 +31,7 @@ const RegisterGoal = () => {
       setPromedios(response.data);
       if (response.data.disponible_para_metas < 0) {
         //alert("Se recomienda que tengas más ingresos que gastos para una mejor gestión financiera.");
-        navigate('/'); // Redirigir a la página principal
+        navigate('/dashboard/inicio'); // Redirigir a la página principal
       }
     } catch (error) {
       console.error('Error al obtener los promedios', error);

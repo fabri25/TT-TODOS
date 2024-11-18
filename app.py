@@ -837,16 +837,27 @@ def obtener_metas():
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
     
     cursor = connection.cursor(dictionary=True)
-    query = """
+    query_metas = """
         SELECT ID_Meta, Nombre, MontoObjetivo, FechaInicio, FechaTermino, MesesParaMeta, AhorroMensual 
         FROM Metas 
         WHERE ID_Usuario = %s
     """
-    cursor.execute(query, (user_id,))
+    cursor.execute(query_metas, (user_id,))
     metas = cursor.fetchall()
-    
+
+    for meta in metas:
+        query_ahorrado = """
+            SELECT SUM(MontoAhorrado) as MontoAhorrado 
+            FROM TransaccionesMeta 
+            WHERE ID_Meta = %s
+        """
+        cursor.execute(query_ahorrado, (meta['ID_Meta'],))
+        resultado_ahorrado = cursor.fetchone()
+        meta['MontoAhorrado'] = resultado_ahorrado['MontoAhorrado'] if resultado_ahorrado['MontoAhorrado'] is not None else 0
+
     connection.close()
     return jsonify(metas), 200
+
 
 
 #Crear metas
@@ -1184,6 +1195,73 @@ def crear_grupo():
     finally:
         cursor.close()
         connection.close()
+
+# Registrar una nueva transacción para una meta
+@app.route('/api/metas/<int:id_meta>/transacciones', methods=['POST'])
+@jwt_required()
+def registrar_transaccion(id_meta):
+    user_id = get_jwt_identity()
+    data = request.json
+    monto_ahorrado = data.get('montoAhorrado')
+    fecha_transaccion = data.get('fechaTransaccion')
+    
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor()
+    query = """
+        INSERT INTO TransaccionesMeta (ID_Meta, MontoAhorrado, FechaTransaccion)
+        VALUES (%s, %s, %s)
+    """
+    cursor.execute(query, (id_meta, monto_ahorrado, fecha_transaccion))
+    connection.commit()
+    
+    connection.close()
+    return jsonify({"message": "Transacción registrada exitosamente"}), 201
+
+
+
+@app.route('/api/metas/<int:id_meta>', methods=['GET'])
+@jwt_required()
+def obtener_meta(id_meta):
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor(dictionary=True)
+    query_meta = """
+        SELECT ID_Meta, Nombre, MontoObjetivo, FechaInicio, FechaTermino, MesesParaMeta, AhorroMensual
+        FROM Metas
+        WHERE ID_Meta = %s AND ID_Usuario = %s
+    """
+    cursor.execute(query_meta, (id_meta, user_id))
+    meta = cursor.fetchone()
+
+    if meta:
+        query_ahorrado = """
+            SELECT COALESCE(SUM(MontoAhorrado), 0) as MontoAhorrado
+            FROM TransaccionesMeta
+            WHERE ID_Meta = %s
+        """
+        cursor.execute(query_ahorrado, (id_meta,))
+        resultado_ahorrado = cursor.fetchone()
+        meta['MontoAhorrado'] = resultado_ahorrado['MontoAhorrado'] if resultado_ahorrado['MontoAhorrado'] is not None else 0
+
+        query_transacciones = """
+            SELECT ID_Transaccion, MontoAhorrado, FechaTransaccion
+            FROM TransaccionesMeta
+            WHERE ID_Meta = %s
+        """
+        cursor.execute(query_transacciones, (id_meta,))
+        meta['transacciones'] = cursor.fetchall()
+
+    connection.close()
+    return jsonify(meta), 200
+
+
+
 
 
 def send_invitation_email(email, grupo_id, nombre_grupo):
