@@ -20,6 +20,7 @@ import CreateGroup from './components/CreateGroup';
 import FinancialGoals from './components/FinancialGoals';
 import RegisterGoal from './components/RegisterGoal';
 import CheckFinancialData from './components/CheckFinancialData';
+import Grupos from './components/Grupos'; // Importa el componente Grupos
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="add-income" element={<AddIncome />} />
             <Route path="add-expense" element={<AddExpense />} />
             <Route path="grupo/crear" element={<CreateGroup />} /> {/* Nueva ruta */}
+            <Route path="listado_grupos" element={<Grupos />} /> {/* Ruta de Grupos */}
             <Route path="/dashboard/validar-datos-financieros" element={<CheckFinancialData />} /> 
             <Route path="/dashboard/metas-financieras" element={<FinancialGoals />} />
             <Route path="/dashboard/registrar-meta" element={<RegisterGoal />} />

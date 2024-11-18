@@ -1228,5 +1228,40 @@ def accept_invitation():
 
 
 
+@app.route('/api/grupos', methods=['GET'])
+@jwt_required()
+def obtener_grupos_usuario():
+    user_id = get_jwt_identity()
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+    try:
+        # Obtener los grupos en los que el usuario pertenece y está confirmado
+        query_grupos = """
+        SELECT g.ID_Grupo, g.Nombre_Grupo, g.Descripcion, 
+               CONCAT(u.Nombre, ' ', u.Apellido_P, ' ', u.Apellido_M) AS Nombre_Admin,
+               CASE WHEN g.ID_Admin = %s THEN 1 ELSE 0 END AS es_admin
+        FROM Grupo g
+        JOIN Usuario u ON g.ID_Admin = u.ID_Usuario
+        JOIN Miembro_Grupo mg ON g.ID_Grupo = mg.ID_Grupo
+        WHERE mg.ID_Usuario = %s AND mg.Confirmado = 1
+        """
+        cursor.execute(query_grupos, (user_id, user_id))
+        grupos = cursor.fetchall()
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener los grupos: {str(e)}"}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+    return jsonify(grupos), 200
+
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)

@@ -32,7 +32,7 @@ const Login = () => {
       console.log(response.data);  // Verificar qué datos están regresando
 
       if (response.status === 200 && response.data) {
-        const { token, user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso, pertenece_a_grupo, es_admin_grupo, admin_groups, member_groups } = response.data;
+        const { token, user, hasIncome, showFloatingTabIncome, descripcionIngreso, fechaUltimoIngreso, pertenece_a_grupo, es_admin_grupo, grupos_administrados, grupos_pertenecientes } = response.data;
 
         // Guardar el token en el almacenamiento local
         localStorage.setItem('token', token);
@@ -46,8 +46,8 @@ const Login = () => {
         localStorage.setItem('es_admin_grupo', es_admin_grupo);
 
         // Guardar información de los grupos en el almacenamiento local
-        localStorage.setItem('admin_groups', JSON.stringify(admin_groups)); // Grupos donde el usuario es administrador
-        localStorage.setItem('member_groups', JSON.stringify(member_groups)); // Grupos donde el usuario es miembro
+        localStorage.setItem('grupos_administrados', JSON.stringify(grupos_administrados)); // Grupos donde el usuario es administrador
+        localStorage.setItem('grupos_pertenecientes', JSON.stringify(grupos_pertenecientes)); // Grupos donde el usuario es miembro
 
         // Si se debe mostrar la ventana flotante de ingreso
         if (showFloatingTabIncome) {

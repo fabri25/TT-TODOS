@@ -13,9 +13,7 @@ const NewLayout = () => {
   const [descripcionIngreso, setDescripcionIngreso] = useState('');
   const [fechaUltimoIngreso, setFechaUltimoIngreso] = useState('');
   const [perteneceAGrupo, setPerteneceAGrupo] = useState(false);
-  const [esAdminGrupo, setEsAdminGrupo] = useState(false);
   const [misGrupos, setMisGrupos] = useState([]);
-  const [gruposAdmin, setGruposAdmin] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,20 +32,14 @@ const NewLayout = () => {
       navigate('/');
     }
 
-    // Obtener valores de login desde localStorage
     const hasIncome = localStorage.getItem('hasIncome') === 'true';
     const showIncomeTab = localStorage.getItem('showFloatingTabIncome') === 'true';
     const perteneceAGrupoLocal = localStorage.getItem('pertenece_a_grupo') === 'true';
-    const esAdminGrupoLocal = localStorage.getItem('es_admin_grupo') === 'true';
 
     setPerteneceAGrupo(perteneceAGrupoLocal);
-    setEsAdminGrupo(esAdminGrupoLocal);
 
     const gruposUsuario = JSON.parse(localStorage.getItem('mis_grupos') || '[]');
-    const gruposAdministrador = JSON.parse(localStorage.getItem('grupos_admin') || '[]');
-
     setMisGrupos(gruposUsuario);
-    setGruposAdmin(gruposAdministrador);
 
     if (!hasIncome) {
       setShowFloatingTab(true);
@@ -84,7 +76,7 @@ const NewLayout = () => {
           <p className="logo-text">Sistema financiero</p>
         </div>
         <div className="sidebar-content">
-          <ul className="nav-menu nav-lateral-list-menu">
+          <ul className="nav-menu">
             <li className={`menu-item ${activeMenu === 'inicio' ? 'active' : ''}`}>
               <Link to="/dashboard/inicio" onClick={() => setActiveMenu('inicio')}>
                 <i className="bi bi-house"></i> Inicio
@@ -108,26 +100,24 @@ const NewLayout = () => {
                 <i className="bi bi-people"></i> Grupos Financieros <i className={`bi bi-chevron-${activeMenu === 'grupo' ? 'up' : 'down'}`}></i>
               </div>
               <ul className={`dropdown-menu ${activeMenu === 'grupo' ? 'show' : ''}`}>
-                <li className="submenu-item">
-                  <span>Mis Grupos {'>'}</span>
-                  <ul className="submenu">
-                    {misGrupos.map((grupo) => (
-                      <li key={grupo.ID_Grupo}><Link to={`/dashboard/grupo/${grupo.ID_Grupo}`}>{grupo.Nombre_Grupo}</Link></li>
-                    ))}
-                  </ul>
-                </li>
-                <li><Link to="/dashboard/grupo/crear">Crear Grupo</Link></li>
-                <li><Link to="/dashboard/grupo/unirse">Unirse a un Grupo</Link></li>
-                {esAdminGrupo && (
-                  <li className="submenu-item">
-                    <span>Configuración de Grupo {'>'}</span>
-                    <ul className="submenu">
-                      {gruposAdmin.map((grupo) => (
-                        <li key={grupo.ID_Grupo}><Link to={`/dashboard/grupo/configurar/${grupo.ID_Grupo}`}>{grupo.Nombre_Grupo}</Link></li>
-                      ))}
-                    </ul>
+                {perteneceAGrupo && (
+                  <li>
+                    <Link to="/dashboard/listado_grupos">Mis Grupos</Link>
                   </li>
                 )}
+                <li><Link to="/dashboard/grupo/crear">Crear Grupo</Link></li>
+                <li><Link to="/dashboard/grupo/unirse">Unirse a un Grupo</Link></li>
+              </ul>
+            </li>
+
+            {/* Nueva opción: Metas */}
+            <li className={`menu-item ${activeMenu === 'metas' ? 'active' : ''}`} onClick={() => toggleMenu('metas')}>
+              <div className="dropdown-menu-button">
+                <i className="bi bi-bar-chart"></i> Metas Financieras <i className={`bi bi-chevron-${activeMenu === 'metas' ? 'up' : 'down'}`}></i>
+              </div>
+              <ul className={`dropdown-menu ${activeMenu === 'metas' ? 'show' : ''}`}>
+                <li><Link to="/dashboard/validar-datos-financieros">Registrar Meta</Link></li>
+                <li><Link to="/dashboard/metas-financieras">Metas Financieras</Link></li>
               </ul>
             </li>
           </ul>
