@@ -32,6 +32,7 @@ const Grupos = () => {
 
   const handleInfoClick = (grupo) => {
     console.log(`Información del grupo: ${grupo.Nombre_Grupo}`);
+    navigate(`/dashboard/grupo/${grupo.ID_Grupo}`);
     // Aquí podrías redirigir a una vista de información del grupo si es necesario
   };
 
