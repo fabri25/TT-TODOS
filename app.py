@@ -956,14 +956,27 @@ def eliminar_meta(id_meta):
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
-    
-    cursor = connection.cursor()
-    query = "DELETE FROM Metas WHERE ID_Meta = %s AND ID_Usuario = %s"
-    cursor.execute(query, (id_meta, user_id))
-    connection.commit()
-    
-    connection.close()
-    return jsonify({"message": "Meta eliminada exitosamente"}), 200
+
+    try:
+        cursor = connection.cursor()
+        
+        # Primero eliminar transacciones asociadas
+        query_transacciones = "DELETE FROM TransaccionesMeta WHERE ID_Meta = %s"
+        cursor.execute(query_transacciones, (id_meta,))
+        
+        # Luego eliminar la meta
+        query_meta = "DELETE FROM Metas WHERE ID_Meta = %s AND ID_Usuario = %s"
+        cursor.execute(query_meta, (id_meta, user_id))
+        
+        connection.commit()
+    except mysql.connector.Error as err:
+        connection.rollback()
+        return jsonify({"error": str(err)}), 500
+    finally:
+        connection.close()
+
+    return '', 204
+
 
 
 
@@ -1259,6 +1272,27 @@ def obtener_meta(id_meta):
 
     connection.close()
     return jsonify(meta), 200
+
+
+@app.route('/api/metas/<int:id_meta>/transacciones', methods=['GET'])
+@jwt_required()
+def obtener_transacciones(id_meta):
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor(dictionary=True)
+    query = """
+        SELECT ID_Transaccion, MontoAhorrado, FechaTransaccion
+        FROM TransaccionesMeta
+        WHERE ID_Meta = %s
+    """
+    cursor.execute(query, (id_meta,))
+    transacciones = cursor.fetchall()
+
+    connection.close()
+    return jsonify(transacciones), 200
 
 
 

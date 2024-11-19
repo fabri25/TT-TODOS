@@ -243,7 +243,7 @@ const DetalleMeta = () => {
             </LineChart>
           </ResponsiveContainer>
 
-          <button onClick={() => navigate('/dashboard/metas')}>
+          <button onClick={() => navigate('/dashboard/metas-financieras')}>
             Volver a Mis Metas
           </button>
         </>
