@@ -77,6 +77,101 @@ const DetalleMeta = () => {
     }
   };
 
+  const calcularDatosGrafico = () => {
+    if (!meta) return [];
+  
+    const fechaInicio = new Date(meta.FechaInicio);
+    const fechaTermino = new Date(meta.FechaTermino);
+    const ahorroMensual = parseFloat(meta.AhorroMensual);
+    const montoObjetivo = parseFloat(meta.MontoObjetivo);
+  
+    // Generar datos de ahorro ideal por meses
+    const datosIdeal = [];
+    let acumuladoIdeal = 0;
+    let fechaActual = new Date(fechaInicio);
+  
+    while (acumuladoIdeal < montoObjetivo && fechaActual <= fechaTermino) {
+      datosIdeal.push({
+        fecha: `${fechaActual.getFullYear()}-${fechaActual.getMonth() + 1}`, // Formato "YYYY-MM"
+        ahorroIdeal: acumuladoIdeal,
+      });
+      acumuladoIdeal += ahorroMensual;
+      fechaActual.setMonth(fechaActual.getMonth() + 1);
+    }
+  
+    // Asegurarse de que el último punto no exceda el monto objetivo
+    if (acumuladoIdeal >= montoObjetivo) {
+      datosIdeal.push({
+        fecha: `${fechaActual.getFullYear()}-${fechaActual.getMonth()}`, // Formato "YYYY-MM"
+        ahorroIdeal: montoObjetivo,
+      });
+    }
+  
+    // Agrupar transacciones reales por mes
+    const transaccionesPorMes = {};
+    meta.transacciones.forEach((transaccion) => {
+      const fecha = new Date(transaccion.FechaTransaccion);
+      const mes = `${fecha.getFullYear()}-${fecha.getMonth() + 1}`; // Formato "YYYY-MM"
+      if (!transaccionesPorMes[mes]) {
+        transaccionesPorMes[mes] = 0;
+      }
+      transaccionesPorMes[mes] += parseFloat(transaccion.MontoAhorrado);
+    });
+  
+    // Generar datos reales acumulados hasta el último mes registrado
+    const datosReales = [];
+    let acumuladoReal = 0;
+    let ultimaFechaReal = '';
+    Object.keys(transaccionesPorMes).forEach((mes) => {
+      acumuladoReal += transaccionesPorMes[mes];
+      ultimaFechaReal = mes;
+      datosReales.push({
+        fecha: mes,
+        ahorroReal: acumuladoReal,
+      });
+    });
+  
+    // Asegurar que todos los meses desde el inicio hasta el final tengan datos
+    const mesesGrafico = [];
+    let fechaTemp = new Date(fechaInicio);
+    while (fechaTemp <= fechaTermino) {
+      mesesGrafico.push(`${fechaTemp.getFullYear()}-${fechaTemp.getMonth() + 1}`);
+      fechaTemp.setMonth(fechaTemp.getMonth() + 1);
+    }
+  
+    // Completar datos de ahorro real con valores anteriores si no hay transacción en ese mes
+    let ultimoAhorroReal = 0;
+  
+    const datosFinales = mesesGrafico.map((mes, index) => {
+      const datoIdeal = datosIdeal.find((dato) => dato.fecha === mes);
+      const datoReal = datosReales.find((real) => real.fecha === mes);
+  
+      // Si no hay dato real para este mes, mantener el valor del último mes disponible
+      if (datoReal) {
+        ultimoAhorroReal = datoReal.ahorroReal;
+      }
+  
+      // Asignar ahorro real: asegurar que el primer mes tenga siempre 0
+      const esPrimerMes = mes === `${fechaInicio.getFullYear()}-${fechaInicio.getMonth() + 1}`;
+      const ahorroReal = esPrimerMes ? 0 : ultimoAhorroReal;
+  
+      // Asignar ahorro ideal, garantizando que el último mes tenga el monto objetivo
+      const esUltimoMes = index === mesesGrafico.length - 1;
+      const ahorroIdeal = esUltimoMes
+        ? montoObjetivo
+        : (datoIdeal ? datoIdeal.ahorroIdeal : 0);
+  
+      return {
+        fecha: mes,
+        ahorroIdeal: ahorroIdeal,
+        ahorroReal: ahorroReal,
+      };
+    });
+  
+    return datosFinales;
+  };
+  
+
   const data = meta
     ? meta.transacciones.map((transaccion) => ({
         fecha: new Date(transaccion.FechaTransaccion).toLocaleDateString(),
@@ -84,14 +179,6 @@ const DetalleMeta = () => {
         ahorroMensual: parseFloat(meta.AhorroMensual), // Línea constante
       }))
     : [];
-
-
-  const ahorroMensualData =
-    meta &&
-    meta.transacciones.map((_, index) => ({
-      fecha: data[index]?.fecha || '',
-      montoAhorrado: parseFloat(meta.AhorroMensual),
-    }));
 
   const porcentajeCumplimiento = meta
     ? ((meta.MontoAhorrado || 0) / meta.MontoObjetivo) * 100
@@ -175,80 +262,80 @@ const DetalleMeta = () => {
                   </thead>
                   <tbody>
                     {meta.transacciones.map((transaccion) => (
-                      <tr key={transaccion.ID_Transaccion}>
+                      <tr key={transaccion.id}>
                         <td>
-                          {new Date(
-                            transaccion.FechaTransaccion
-                          ).toLocaleDateString()}
+                          {new Date(transaccion.FechaTransaccion).toLocaleDateString()}
                         </td>
                         <td>
-                          {parseFloat(transaccion.MontoAhorrado).toLocaleString(
-                            'es-MX',
-                            { style: 'currency', currency: 'MXN' }
-                          )}
+                          {parseFloat(transaccion.MontoAhorrado).toLocaleString('es-MX', {
+                            style: 'currency',
+                            currency: 'MXN',
+                          })}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <p>No hay transacciones registradas para esta meta.</p>
+                <p>No se han registrado transacciones aún.</p>
               )}
 
-              <h3>Registrar Nueva Transacción</h3>
+              <h3>Registrar Transacción</h3>
               <form onSubmit={handleSubmit}>
-                <div>
-                  
-                  <input
-                    type="number"
-                    value={transaccion.montoAhorrado}
-                    onChange={(e) =>
-                      setTransaccion({
-                        ...transaccion,
-                        montoAhorrado: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <div>
-                 
-                  <input
-                    type="date"
-                    value={transaccion.fechaTransaccion}
-                    onChange={(e) =>
-                      setTransaccion({
-                        ...transaccion,
-                        fechaTransaccion: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-                <button type="submit">Registrar Transacción</button>
+              
+                <input
+                  type="number"
+                  id="montoAhorrado"
+                  value={transaccion.montoAhorrado}
+                  onChange={(e) =>
+                    setTransaccion({
+                      ...transaccion,
+                      montoAhorrado: e.target.value,
+                    })
+                  }
+                />
+                
+                <input
+                  type="date"
+                  id="fechaTransaccion"
+                  value={transaccion.fechaTransaccion}
+                  onChange={(e) =>
+                    setTransaccion({
+                      ...transaccion,
+                      fechaTransaccion: e.target.value,
+                    })
+                  }
+                />
+                <button type="submit">Registrar</button>
               </form>
-              {error && <p className="error-message">{error}</p>}
+              {error && <p className="error">{error}</p>}
             </>
           )}
 
-<h3>Progreso de Ahorro</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={data}>
+          <h3>Gráfico de Ahorro</h3>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={calcularDatosGrafico()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="fecha" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="montoAhorrado" stroke="#8884d8" name="Monto Ahorrado" />
-              <Line type="monotone" dataKey="ahorroMensual" stroke="#82ca9d" name="Ahorro Mensual Constante" />
+              <Line
+                type="monotone"
+                dataKey="ahorroIdeal"
+                stroke="#8884d8"
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="ahorroReal"
+                stroke="#82ca9d"
+                dot={false}
+              />
             </LineChart>
           </ResponsiveContainer>
-
-          <button onClick={() => navigate('/dashboard/metas-financieras')}>
-            Volver a Mis Metas
-          </button>
         </>
       ) : (
-        <p>Cargando detalles de la meta...</p>
+        <p>Cargando los detalles de la meta...</p>
       )}
     </div>
   );
