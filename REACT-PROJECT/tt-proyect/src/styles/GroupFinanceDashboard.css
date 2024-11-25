@@ -1,0 +1,40 @@
+.group-finance-dashboard-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .group-finance-chart-section {
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .group-finance-chart {
+    width: 40%;
+  }
+  
+  .group-finance-calendar {
+    width: 55%;
+  }
+  
+  .group-finance-list-section {
+    margin-top: 20px;
+  }
+  
+  .group-finance-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .group-finance-table th,
+  .group-finance-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .group-finance-table th {
+    background-color: #f2f2f2;
+  }
+  

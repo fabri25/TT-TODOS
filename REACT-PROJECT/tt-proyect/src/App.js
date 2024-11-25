@@ -22,6 +22,8 @@ import RegisterGoal from './components/RegisterGoal';
 import CheckFinancialData from './components/CheckFinancialData';
 import Grupos from './components/Grupos'; // Importa el componente Grupos
 import DetalleMeta from './components/DetalleMeta';
+import GroupFinanceDashboard from './components/GroupFinanceDashboard'; // Importa el componente
+import AddGroupExpense from './components/AddGroupExpense'; // Importa el componente
 
 function App() {
   return (
@@ -52,7 +54,9 @@ function App() {
             <Route path="/dashboard/metas-financieras" element={<FinancialGoals />} />
             <Route path="/dashboard/registrar-meta" element={<RegisterGoal />} />
             <Route path="/dashboard/metas/:idMeta" element={<DetalleMeta />} />
-          </Route>
+            <Route path="/dashboard/grupo/:grupoId" element={<GroupFinanceDashboard />}/>
+            <Route path="/dashboard/grupo/:grupoId/add-expense" element={<AddGroupExpense />} />
+            </Route>
         </Routes>
       </div>
     </Router>
