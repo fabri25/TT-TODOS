@@ -223,6 +223,9 @@ const GroupFinanceDashboard = () => {
     navigate(`/dashboard/grupo/${grupoId}/add-expense`, { state: { selectedDate } });
     setPopoverPosition(null);
   };
+  const handleViewGoals = () => {
+    navigate(`/dashboard/grupo/${grupoId}/metas-grupales`); // Ruta para ver metas
+  };
 
   return (
     <div className="expense-dashboard-container">
@@ -271,6 +274,15 @@ const GroupFinanceDashboard = () => {
             />
           </div>
         </div>
+      </div>
+              {/* Botón centrado para "Ver Metas" */}
+      <div className="view-goals-button-container" style={{ textAlign: 'center', marginTop: '20px' }}>
+        <button
+          className="btn btn-success"
+          onClick={handleViewGoals}
+        >
+          Ver Metas
+        </button>
       </div>
 
       <div className="expense-list-section">

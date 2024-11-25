@@ -32,6 +32,16 @@ const AddExpenseModal = ({ onClose, onSave }) => {
     message: '',
   });
 
+  // Función para formatear el monto como moneda
+  const formatAmount = (amount) => {
+    if (!amount) return '';
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setExpenseData((prevState) => ({
@@ -197,7 +207,12 @@ const AddExpenseModal = ({ onClose, onSave }) => {
             id="Monto"
             name="Monto"
             value={expenseData.Monto}
-            onChange={(e) => setExpenseData((prev) => ({ ...prev, Monto: e.target.value.replace(/\D/g, '') }))}
+            onChange={(e) =>
+              setExpenseData((prev) => ({
+                ...prev,
+                Monto: formatAmount(e.target.value.replace(/\D/g, '')),
+              }))
+            }
             className="form-control"
             required
           />

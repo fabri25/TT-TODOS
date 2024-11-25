@@ -90,8 +90,6 @@ const NewLayout = () => {
               <ul className={`dropdown-menu ${activeMenu === 'finanzas' ? 'show' : ''}`}>
                 <li><Link to="/dashboard/ingresos">Ingresos</Link></li>
                 <li><Link to="/dashboard/gastos">Gastos</Link></li>
-                <li><Link to="/dashboard/ahorros">Ahorros</Link></li>
-                <li><Link to="/dashboard/inversiones">Inversiones</Link></li>
               </ul>
             </li>
 

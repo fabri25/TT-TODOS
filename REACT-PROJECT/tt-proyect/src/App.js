@@ -24,6 +24,10 @@ import Grupos from './components/Grupos'; // Importa el componente Grupos
 import DetalleMeta from './components/DetalleMeta';
 import GroupFinanceDashboard from './components/GroupFinanceDashboard'; // Importa el componente
 import AddGroupExpense from './components/AddGroupExpense'; // Importa el componente
+import RegisterGroupGoal from './components/RegisterGroupGoal';
+import GroupConfig from './components/GroupConfig'; // Importa el componente de configuración del grupo
+import VisualizarMetasGrupales from './components/VisualizarMetasGrupales'; // Importa el componente de configuración del grupo
+
 
 function App() {
   return (
@@ -56,6 +60,10 @@ function App() {
             <Route path="/dashboard/metas/:idMeta" element={<DetalleMeta />} />
             <Route path="/dashboard/grupo/:grupoId" element={<GroupFinanceDashboard />}/>
             <Route path="/dashboard/grupo/:grupoId/add-expense" element={<AddGroupExpense />} />
+            <Route path="/dashboard/grupo/:grupoId/registrar-meta-grupo" element={<RegisterGroupGoal />} />
+            <Route path="/dashboard/grupo/:grupoId/metas-grupales" element={<VisualizarMetasGrupales />} />
+            <Route path="/dashboard/grupo/configurar/:grupoId" element={<GroupConfig />} /> {/* Ruta de configuración del grupo */}
+
             </Route>
         </Routes>
       </div>
