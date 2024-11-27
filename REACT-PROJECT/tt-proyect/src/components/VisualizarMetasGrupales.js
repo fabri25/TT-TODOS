@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import '../styles/VisualizarMetas.css'; // Asegúrate de importar el archivo CSS
+import '../styles/VisualizarMetas.css'; // Reutilizamos el mismo CSS
 
 const VisualizarMetasGrupales = () => {
   const [metas, setMetas] = useState([]);
@@ -18,14 +18,15 @@ const VisualizarMetasGrupales = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://127.0.0.1:5000/api/grupo/${grupoId}/metas`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       // Agregar el estatus basado en la comparación de Monto_Actual y Monto_Objetivo
       const metasConEstatus = response.data.map((meta) => {
-        const estatus = parseFloat(meta.Monto_Actual) === parseFloat(meta.Monto_Objetivo) 
-          ? 'Completado' 
-          : 'En curso';
+        const estatus =
+          parseFloat(meta.Monto_Actual) === parseFloat(meta.Monto_Objetivo)
+            ? 'Completado'
+            : 'En curso';
 
         return {
           ...meta,
@@ -64,20 +65,35 @@ const VisualizarMetasGrupales = () => {
               <th>Fecha de Inicio</th>
               <th>Fecha de Término (Deseada)</th>
               <th>Estatus</th>
-              <th>Acciones</th>
+              <th>Detalle</th>
             </tr>
           </thead>
           <tbody>
             {metas.map((meta) => (
               <tr key={meta.ID_Ahorro_Grupal}>
                 <td>{meta.Descripcion}</td>
-                <td>{parseFloat(meta.Monto_Objetivo).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</td>
-                <td>{parseFloat(meta.Monto_Actual).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</td>
+                <td>
+                  {parseFloat(meta.Monto_Objetivo).toLocaleString('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN',
+                  })}
+                </td>
+                <td>
+                  {parseFloat(meta.Monto_Actual).toLocaleString('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN',
+                  })}
+                </td>
                 <td>{new Date(meta.Fecha_Inicio).toLocaleDateString()}</td>
                 <td>{new Date(meta.Fecha_Limite).toLocaleDateString()}</td>
                 <td>{meta.Estatus}</td>
                 <td>
-                  <button className="details-button" onClick={() => handleViewDetails(meta.ID_Ahorro_Grupal)}>Ver Detalles</button>
+                  <button
+                    className="action-button details-button"
+                    onClick={() => handleViewDetails(meta.ID_Ahorro_Grupal)}
+                  >
+                    <i className="bi bi-eye"></i>
+                  </button>
                 </td>
               </tr>
             ))}

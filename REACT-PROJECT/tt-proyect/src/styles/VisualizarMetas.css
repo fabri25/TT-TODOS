@@ -1,116 +1,99 @@
 /* Contenedor principal */
 .metas-container {
-    max-width: 900px;
-    margin: 30px auto;
-    padding: 20px;
-    background-color: #f4f7fa;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-  }
-  
-  .metas-container h2 {
-    font-size: 2rem;
-    margin-bottom: 20px;
-    color: #2d3e50;
-    font-weight: 600;
-  }
-  
-  .loading-message {
-    font-size: 1.2rem;
-    color: #333;
-    font-weight: bold;
-    margin: 20px 0;
-  }
-  
-  /* Estilo de la tabla */
-  .metas-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
-  
-  .metas-table th, .metas-table td {
-    padding: 12px;
-    border: 1px solid #e1e8f0;
-    text-align: center;
-    font-size: 1rem;
-  }
-  
-  .metas-table th {
-    background-color: #395caf;
-    color: white;
-    font-weight: bold;
-  }
-  
-  .metas-table tr:nth-child(even) {
-    background-color: #f9f9f9;
-  }
-  
-  .metas-table tr:hover {
-    background-color: #e2f7e0;
-  }
-  
-  .metas-table td {
-    color: #333;
-  }
-  
-  .metas-table td button {
-    background-color: #ff5252;
-    color: white;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .metas-table td button:hover {
-    background-color: #f44336;
-  }
-  
-  /* Mensaje cuando no hay metas */
-  p {
-    font-size: 1.2rem;
-    color: #777;
-  }
-  
-  /* Estilos para el botón de eliminar */
-  .delete-button {
-    background-color: #ff5252;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.3s ease;
-  }
-  
-  .delete-button:hover {
-    background-color: #f44336;
-  }
-  
-  .delete-button:focus {
-    outline: none;
-  }
-  
-  /* Ajustes para la tabla */
-  table {
-    width: 100%;
-    margin-top: 20px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  table th {
-    text-align: left;
-    padding-left: 15px;
-  }
-  
-  table td {
-    text-align: center;
-    padding: 12px;
-  }
-  
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 20px;
+  background-color: #f4f7fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.metas-container h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: #2d3e50;
+  font-weight: 600;
+}
+
+/* Contenedor de la tabla */
+.metas-table-wrapper {
+  padding: 15px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
+}
+
+.loading-message {
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: bold;
+  margin: 20px 0;
+}
+
+/* Estilo de la tabla */
+.metas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+.metas-table th,
+.metas-table td {
+  padding: 12px;
+  border: 1px solid #e1e8f0;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.metas-table th {
+  background-color: #395caf;
+  color: white;
+  font-weight: bold;
+}
+
+.metas-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.metas-table tr:hover {
+  background-color: #e2f7e0;
+}
+
+.metas-table td {
+  color: #333;
+}
+
+/* Estilos para los botones de acción */
+.action-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
+}
+
+.details-button {
+  color: #007bff;
+}
+
+.details-button:hover {
+  color: #0056b3;
+}
+
+.delete-button {
+  color: #ff5252;
+}
+
+.delete-button:hover {
+  color: #f44336;
+}
+
+/* Ajustes para la tabla */
+table {
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+}
