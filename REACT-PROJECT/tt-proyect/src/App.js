@@ -28,6 +28,7 @@ import RegisterGroupGoal from './components/RegisterGroupGoal';
 import GroupConfig from './components/GroupConfig'; // Importa el componente de configuración del grupo
 import VisualizarMetasGrupales from './components/VisualizarMetasGrupales'; // Importa el componente de configuración del grupo
 import AddGroupMembers from './components/AddGroupMembers'; // Importa el componente de configuración del grupo
+import EditExpenseModal from './components/EditExpenseModal'; // Importa el componente de configuración del grupo
 
 
 function App() {
@@ -53,6 +54,7 @@ function App() {
             <Route path="edit-income/:id" element={<EditIncome />} />
             <Route path="add-income" element={<AddIncome />} />
             <Route path="add-expense" element={<AddExpense />} />
+            <Route path="/dashboard/edit-expense/:idGasto" element={<EditExpenseModal />} />
             <Route path="grupo/crear" element={<CreateGroup />} /> {/* Nueva ruta */}
             <Route path="listado_grupos" element={<Grupos />} /> {/* Ruta de Grupos */}
             <Route path="/dashboard/validar-datos-financieros" element={<CheckFinancialData />} /> 

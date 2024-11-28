@@ -133,6 +133,7 @@ const ExpenseDashboard = () => {
 
   const handleEdit = (idGasto) => {
     navigate(`/dashboard/edit-expense/${idGasto}`);
+
   };
 
   const handleEventClick = (event, e) => {

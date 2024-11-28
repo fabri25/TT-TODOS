@@ -1,58 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import '../styles/EditIncome.css';
 import ConfirmationModal from './ConfirmationModal';
 import Notification from './Notification';
 
-const AddExpenseModal = ({ onClose, onSave }) => {
-  const location = useLocation();
+const EditExpenseModal = () => {
   const navigate = useNavigate();
-
-  const selectedDate = location.state?.selectedDate
-    ? new Date(location.state.selectedDate).toISOString().split('T')[0]
-    : '';
+  const { idGasto } = useParams(); // Obtener el ID del gasto desde la URL
 
   const [expenseData, setExpenseData] = useState({
     Descripcion: '',
     Monto: '',
     Periodicidad: '',
     Categoria: '',
-    Fecha: selectedDate || '',
+    Fecha: '',
     Periodico: 1, // Por defecto, el gasto es periódico
     ID_Subcategoria: '', // Aquí guardaremos el ID de la subcategoría
   });
 
-  const [isUniqueExpense, setIsUniqueExpense] = useState(false); // Nuevo estado para el checkbox de gasto único
+  const [isUniqueExpense, setIsUniqueExpense] = useState(false); // Estado para el checkbox de gasto único
   const [subcategories, setSubcategories] = useState([]);
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // Estado para mostrar el modal de confirmación
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [notification, setNotification] = useState({
     show: false,
     type: '',
     message: '',
   });
 
-  // Función para formatear el monto como moneda
+  useEffect(() => {
+    fetchExpenseDetails();
+  }, []);
+
+  const fetchExpenseDetails = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://127.0.0.1:5000/api/gasto/${idGasto}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = response.data;
+      setExpenseData({
+        Descripcion: data.Descripcion,
+        Monto: formatAmount(parseInt(data.Monto, 10)), // Formatear monto como moneda sin decimales
+        Periodicidad: data.Periodicidad || '',
+        Categoria: data.Categoria,
+        Fecha: new Date(data.Fecha).toISOString().split('T')[0], // Asegurar formato de fecha
+        Periodico: data.Periodico,
+        ID_Subcategoria: data.ID_Subcategoria || '', // Manejar casos sin subcategorías
+      });
+      setIsUniqueExpense(data.Periodico === 0);
+      if (data.Categoria) {
+        fetchSubcategories(data.Categoria);
+      }
+    } catch (error) {
+      console.error('Error al obtener los detalles del gasto', error);
+      setNotification({
+        show: true,
+        type: 'error',
+        message: 'Error al obtener los detalles del gasto',
+      });
+    }
+  };
+
   const formatAmount = (amount) => {
     if (!amount) return '';
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 0, // Sin decimales
     }).format(amount);
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setExpenseData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
-
-    // Cuando se selecciona una nueva categoría, obtener subcategorías
-    if (name === 'Categoria') {
-      fetchSubcategories(value);
-    }
   };
 
   const fetchSubcategories = async (category) => {
@@ -76,10 +93,30 @@ const AddExpenseModal = ({ onClose, onSave }) => {
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setExpenseData((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
+
+    if (name === 'Categoria') {
+      fetchSubcategories(value);
+    }
+  };
+
+  const handleAmountChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Eliminar cualquier carácter no numérico
+    setExpenseData((prevState) => ({
+      ...prevState,
+      Monto: formatAmount(value), // Formatear monto mientras se escribe
+    }));
+  };
+
   const handleSubcategoryChange = (e) => {
     setExpenseData((prevState) => ({
       ...prevState,
-      ID_Subcategoria: e.target.value, // Asignar el ID de la subcategoría seleccionada
+      ID_Subcategoria: e.target.value,
     }));
   };
 
@@ -89,58 +126,58 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
     setExpenseData((prevState) => ({
       ...prevState,
-      Periodico: isChecked ? 0 : 1, // Si es único, Periodico es 0; si no, es 1
+      Periodico: isChecked ? 0 : 1,
       Periodicidad: isChecked ? '' : prevState.Periodicidad,
-      ID_Subcategoria: prevState.ID_Subcategoria, // Mantener subcategoría sin cambios
-      Categoria: isChecked && prevState.Categoria === 'Fijo' ? '' : prevState.Categoria, // Limpiar si estaba en "Fijo"
     }));
   };
 
   const handleConfirmSave = async () => {
     try {
       const token = localStorage.getItem('token');
-
       const payload = {
         descripcion: expenseData.Descripcion,
-        monto: expenseData.Monto.replace(/[^0-9.-]+/g, ''),
+        monto: expenseData.Monto.replace(/[^0-9]/g, ''), // Asegurarse de enviar solo números
         categoria: expenseData.Categoria,
-        id_subcategoria: expenseData.ID_Subcategoria, // Enviar el ID de la subcategoría
+        id_subcategoria: expenseData.ID_Subcategoria,
         fecha: expenseData.Fecha,
         periodicidad: expenseData.Periodico ? expenseData.Periodicidad : null,
         periodico: expenseData.Periodico,
       };
 
-      await axios.post('http://127.0.0.1:5000/api/gasto', payload, {
+      await axios.put(`http://127.0.0.1:5000/api/gasto/actualizar/${idGasto}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setNotification({ show: true, type: 'success', message: 'Gasto registrado con éxito' });
-
-      if (typeof onSave === 'function') {
-        onSave();
-      }
+      setNotification({
+        show: true,
+        type: 'success',
+        message: 'Gasto actualizado con éxito',
+      });
 
       navigate('/dashboard/gastos');
     } catch (error) {
-      console.error('Error al registrar el gasto', error);
-      setNotification({ show: true, type: 'error', message: 'Error al registrar el gasto' });
+      console.error('Error al actualizar el gasto', error);
+      setNotification({
+        show: true,
+        type: 'error',
+        message: 'Error al actualizar el gasto',
+      });
     } finally {
       setShowConfirmModal(false);
     }
   };
 
   const handleSaveClick = () => {
-    setShowConfirmModal(true); // Mostrar el modal de confirmación antes de guardar
+    setShowConfirmModal(true);
   };
 
   return (
     <div className="edit-income-container">
-      <h2>Agregar Nuevo Gasto</h2>
+      <h2>Editar Gasto</h2>
       <form onSubmit={(e) => e.preventDefault()}>
-
         <div className="form-group checkbox-group">
           <label htmlFor="UniqueExpense">Es Gasto Único</label>
-
+          <br /><br />
           <input
             type="checkbox"
             id="UniqueExpense"
@@ -153,7 +190,7 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
         <div className="form-group">
           <label htmlFor="Categoria">Categoría</label>
-          <br></br><br></br>
+          <br /><br />
           <select
             id="Categoria"
             name="Categoria"
@@ -171,7 +208,7 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
         <div className="form-group">
           <label htmlFor="ID_Subcategoria">Subcategoría</label>
-          <br></br><br></br>
+          <br /><br />
           <select
             id="ID_Subcategoria"
             name="ID_Subcategoria"
@@ -191,7 +228,7 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
         <div className="form-group">
           <label htmlFor="Descripcion">Descripción</label>
-          <br></br><br></br>
+          <br /><br />
           <input
             type="text"
             id="Descripcion"
@@ -205,18 +242,13 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
         <div className="form-group">
           <label htmlFor="Monto">Monto</label>
-          <br></br><br></br>
+          <br /><br />
           <input
             type="text"
             id="Monto"
             name="Monto"
             value={expenseData.Monto}
-            onChange={(e) =>
-              setExpenseData((prev) => ({
-                ...prev,
-                Monto: formatAmount(e.target.value.replace(/\D/g, '')),
-              }))
-            }
+            onChange={handleAmountChange}
             className="form-control"
             required
           />
@@ -224,7 +256,7 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
         <div className="form-group">
           <label htmlFor="Fecha">Fecha</label>
-          <br></br><br></br>
+          <br /><br />
           <input
             type="date"
             id="Fecha"
@@ -239,7 +271,7 @@ const AddExpenseModal = ({ onClose, onSave }) => {
         {!isUniqueExpense && (
           <div className="form-group">
             <label htmlFor="Periodicidad">Periodicidad</label>
-            <br></br><br></br>
+            <br /><br />
             <select
               id="Periodicidad"
               name="Periodicidad"
@@ -259,9 +291,9 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
         <div className="modal-buttons">
           <button type="button" className="btn btn-primary" onClick={handleSaveClick}>
-            Guardar Gasto
+            Guardar Cambios
           </button>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/dashboard/gastos')}>
             Cancelar
           </button>
         </div>
@@ -269,7 +301,7 @@ const AddExpenseModal = ({ onClose, onSave }) => {
 
       {showConfirmModal && (
         <ConfirmationModal
-          message="¿Está seguro de que desea registrar este gasto?"
+          message="¿Está seguro de que desea actualizar este gasto?"
           onConfirm={handleConfirmSave}
           onCancel={() => setShowConfirmModal(false)}
         />
@@ -286,4 +318,4 @@ const AddExpenseModal = ({ onClose, onSave }) => {
   );
 };
 
-export default AddExpenseModal;
+export default EditExpenseModal;
