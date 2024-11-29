@@ -426,53 +426,66 @@ def agregar_ingreso():
 @app.route('/api/income/filtered', methods=['POST'], endpoint='filtrar_ingresos')
 @jwt_refresh_if_active
 def obtener_ingresos_filtrados():
-    user_id = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
-    data = request.json
-    tipo = data.get('tipo')
-    es_fijo = data.get('esFijo')  # Recibir el filtro de fijo/no fijo
-    periodicidad = data.get('periodicidad')
-    fecha_inicio = data.get('fecha_inicio')
-    fecha_fin = data.get('fecha_fin')
+    user_id = get_jwt_identity()  # ID del usuario autenticado
+    data = request.json  # Filtros enviados desde el frontend
 
+    # Obtener los filtros
+    tipo = data.get('tipo')  # Activo/Pasivo
+    es_fijo = data.get('esFijo')  # Fijo o No fijo
+    fecha_inicio = data.get('fecha_inicio')  # Fecha de inicio del rango
+    fecha_fin = data.get('fecha_fin')  # Fecha de fin del rango
+
+    # Conexión a la base de datos
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
 
     cursor = connection.cursor(dictionary=True)
 
-    # Construir la consulta SQL
+    # Construir la consulta SQL con filtros dinámicos
     query = """
-    SELECT Descripcion, SUM(Monto) as Monto
+    SELECT 
+        ID_Ingreso, 
+        Descripcion, 
+        Monto, 
+        Periodicidad, 
+        EsFijo, 
+        Tipo, 
+        Fecha, 
+        EsPeriodico
     FROM Ingreso
     WHERE ID_Usuario = %s
     """
     params = [user_id]
 
+    # Aplicar filtros dinámicamente
     if tipo:
         query += " AND Tipo = %s"
         params.append(tipo)
-    
-    if es_fijo is not None:  # Manejar el filtro de fijo/no fijo
-        query += " AND EsFijo = %s"
-        params.append(1 if es_fijo == 'fijo' else 0)
 
-    if periodicidad:
-        query += " AND Periodicidad = %s"
-        params.append(periodicidad)
+    if es_fijo:
+        if es_fijo == 'fijo':
+            query += " AND EsFijo = 1"  # Fijo
+        elif es_fijo == 'nofijo':
+            query += " AND (EsFijo = 0 OR EsFijo IS NULL)"  # No fijo incluye NULL
 
     if fecha_inicio and fecha_fin:
         query += " AND Fecha BETWEEN %s AND %s"
         params.append(fecha_inicio)
         params.append(fecha_fin)
 
-    query += " GROUP BY Descripcion"
+    query += " ORDER BY Fecha DESC"  # Ordenar por fecha descendente
 
-    cursor.execute(query, params)
-    ingresos = cursor.fetchall()
+    try:
+        cursor.execute(query, params)
+        ingresos_filtrados = cursor.fetchall()  # Obtener los datos filtrados
+        connection.close()
+        return jsonify(ingresos_filtrados), 200  # Retornar la lista completa de ingresos
+    except Exception as e:
+        connection.close()
+        return jsonify({"error": f"Error al filtrar los ingresos: {str(e)}"}), 500
 
-    connection.close()
-
-    return jsonify(ingresos), 200
+        
 
 # RUTA PARA OBTENER INGRESOS PARA TABLA
 @app.route('/api/user/incomes', methods=['GET'], endpoint='Ingresos_tabla')

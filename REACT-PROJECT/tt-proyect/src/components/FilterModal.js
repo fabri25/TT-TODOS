@@ -32,6 +32,7 @@ const FilterModal = ({ initialFilters, onApplyFilters, onClose }) => {
       tipo: tipoChecked ? tipo : null,
       esFijo: esFijoChecked ? esFijo : null,
     };
+    console.log("Filtros aplicados:", filters);
     onApplyFilters(filters);
   };
 

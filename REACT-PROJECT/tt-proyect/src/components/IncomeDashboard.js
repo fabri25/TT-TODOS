@@ -26,7 +26,7 @@ const IncomeDashboard = () => {
   const [currentFilters, setCurrentFilters] = useState({});
   const [selectedIncome, setSelectedIncome] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null); // Almacena la fecha seleccionada
+  const [selectedDate, setSelectedDate] = useState(null);
   const navigate = useNavigate();
 
   // Función para transformar los ingresos en eventos de calendario
@@ -54,7 +54,6 @@ const IncomeDashboard = () => {
       }
 
       const decodedToken = jwtDecode(token);
-      const userID = localStorage.getItem('userID');
 
       if (decodedToken.exp * 1000 < Date.now()) {
         localStorage.clear();
@@ -62,21 +61,9 @@ const IncomeDashboard = () => {
         return;
       }
 
-      const response = await axios.get('http://127.0.0.1:5000/api/user/incomes', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const ingresosData = response.data;
-      setIngresos(ingresosData);
-
-      const events = transformIngresosToEvents(ingresosData);
-      setEvents(events);
-
-      const chartResponse = await axios.post(
+      const response = await axios.post(
         'http://127.0.0.1:5000/api/income/filtered',
-        {
-          user_id: userID,
-          ...filters,
-        },
+        { ...filters },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -85,17 +72,39 @@ const IncomeDashboard = () => {
         }
       );
 
-      const incomeData = chartResponse.data;
+      const ingresosData = response.data;
+
+      // Actualizamos los datos para todos los componentes
+      setIngresos(ingresosData);
+
+      // Actualizar eventos del calendario
+      const events = transformIngresosToEvents(ingresosData);
+      setEvents(events);
+
+      // Actualizar los datos de la gráfica
+      const groupedData = ingresosData.reduce((acc, curr) => {
+        const { Descripcion, Monto } = curr;
+        if (!acc[Descripcion]) {
+          acc[Descripcion] = 0;
+        }
+        acc[Descripcion] += Monto;
+        return acc;
+      }, {});
+
+      const chartLabels = Object.keys(groupedData);
+      const chartValues = Object.values(groupedData);
+
       const data = {
-        labels: incomeData.map((item) => item.Descripcion),
+        labels: chartLabels,
         datasets: [
           {
             label: 'Tus ingresos',
-            data: incomeData.map((item) => item.Monto),
+            data: chartValues,
             backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
           },
         ],
       };
+
       setChartData(data);
     } catch (error) {
       console.error('Error al obtener los datos', error);
@@ -103,7 +112,7 @@ const IncomeDashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
-    fetchIngresos();
+    fetchIngresos(); // Llamada inicial sin filtros
   }, [fetchIngresos]);
 
   const handleDelete = (id) => {
@@ -165,17 +174,16 @@ const IncomeDashboard = () => {
 
   const handleApplyFilters = (filters) => {
     setCurrentFilters(filters);
-    fetchIngresos(filters);
+    fetchIngresos(filters); // Llamada al endpoint con filtros
     setShowFilterModal(false);
   };
 
   const handleClearFilters = () => {
     setCurrentFilters({});
-    fetchIngresos();
+    fetchIngresos(); // Llamada al endpoint sin filtros
     setShowFilterModal(false);
   };
 
-  // Detectar clic en un día del calendario
   const handleDateClick = (slotInfo) => {
     setSelectedDate(slotInfo.start);
     setPopoverPosition({
@@ -184,7 +192,6 @@ const IncomeDashboard = () => {
     });
   };
 
-  // Redirigir al componente AddIncomeModal con la fecha seleccionada
   const handleAddIncomeClick = () => {
     navigate('/dashboard/add-income', { state: { selectedDate } });
     setPopoverPosition(null);
@@ -318,7 +325,7 @@ const IncomeDashboard = () => {
                 <td>{ingreso.EsFijo ? 'Sí' : 'No'}</td>
                 <td>{ingreso.Tipo}</td>
                 <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
-                <td>{ingreso.TipoPeriodico}</td>
+                <td>{ingreso.EsPeriodico ? 'Periódico' : 'Único'}</td>
                 <td>
                   <button
                     className="btn btn-warning btn-sm"
