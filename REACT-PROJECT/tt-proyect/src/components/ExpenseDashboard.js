@@ -151,14 +151,19 @@ const ExpenseDashboard = () => {
       0
     );
   
+    // Agregar el logo en la esquina superior izquierda
+    const img = new Image();
+    img.src = logo1; // Asegúrate de que el logo esté correctamente importado y referenciado
+    doc.addImage(img, 'PNG', 10, 10, 30, 15); // Coordenadas (x, y) y tamaño (ancho, alto)
+  
     // Agregar título y fecha de generación
     doc.setFontSize(18);
-    doc.text('Reporte de Gastos', 14, 20);
+    doc.text('Reporte de Gastos', 50, 20); // Ajusta el título para que no se superponga con el logo
     doc.setFontSize(12);
-    doc.text(`Fecha de Generación: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Fecha de Generación: ${new Date().toLocaleDateString()}`, 14, 40);
   
     // Mostrar filtros aplicados
-    let yPosition = 40; // Posición inicial para los filtros
+    let yPosition = 50; // Posición inicial para los filtros
     if (Object.keys(currentFilters).length > 0 || searchTerm) {
       doc.setFontSize(12);
       doc.text('Filtros Aplicados:', 14, yPosition);
@@ -238,6 +243,7 @@ const ExpenseDashboard = () => {
     // Descargar el archivo
     doc.save('reporte_gastos.pdf');
   };
+  
   
 
   
