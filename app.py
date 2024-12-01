@@ -432,8 +432,10 @@ def obtener_ingresos_filtrados():
     # Obtener los filtros
     tipo = data.get('tipo')  # Activo/Pasivo
     es_fijo = data.get('esFijo')  # Fijo o No fijo
+    fecha = data.get('fecha')  # Fecha específica
     fecha_inicio = data.get('fecha_inicio')  # Fecha de inicio del rango
     fecha_fin = data.get('fecha_fin')  # Fecha de fin del rango
+    periodicidad = data.get('periodicidad')  # Filtro por periodicidad
 
     # Conexión a la base de datos
     connection = create_connection()
@@ -469,10 +471,21 @@ def obtener_ingresos_filtrados():
         elif es_fijo == 'nofijo':
             query += " AND (EsFijo = 0 OR EsFijo IS NULL)"  # No fijo incluye NULL
 
+    # Filtro por fecha específica
+    if fecha:
+        query += " AND Fecha = %s"
+        params.append(fecha)
+
+    # Filtro por rango de fechas
     if fecha_inicio and fecha_fin:
         query += " AND Fecha BETWEEN %s AND %s"
         params.append(fecha_inicio)
         params.append(fecha_fin)
+
+    # Filtro por periodicidad
+    if periodicidad:
+        query += " AND Periodicidad = %s"
+        params.append(periodicidad)
 
     query += " ORDER BY Fecha DESC"  # Ordenar por fecha descendente
 
@@ -484,6 +497,8 @@ def obtener_ingresos_filtrados():
     except Exception as e:
         connection.close()
         return jsonify({"error": f"Error al filtrar los ingresos: {str(e)}"}), 500
+
+
 
         
 
