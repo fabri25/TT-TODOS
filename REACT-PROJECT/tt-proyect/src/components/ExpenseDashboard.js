@@ -2,15 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Pie } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
-import FilterModal from './FilterModal';
+import FilterModalGastos from './FilterModalGastos'; // Cambiar la importación
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/ExpenseDashboard.css';
 import CustomToolbar from './CustomToolbar';
+import logo1 from '../assets/images/logo1.png';
 
 Chart.register(ArcElement, Tooltip, Legend);
 
@@ -27,6 +30,9 @@ const ExpenseDashboard = () => {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(''); // Término de búsqueda
+  const [filteredExpenses, setFilteredExpenses] = useState([]); // Gastos filtrados por búsqueda
+
   const navigate = useNavigate();
 
   const transformExpensesToEvents = (expenses) => {
@@ -53,7 +59,6 @@ const ExpenseDashboard = () => {
       }
 
       const decodedToken = jwtDecode(token);
-      const userID = localStorage.getItem('userID');
 
       if (decodedToken.exp * 1000 < Date.now()) {
         localStorage.clear();
@@ -61,21 +66,9 @@ const ExpenseDashboard = () => {
         return;
       }
 
-      const response = await axios.get('http://127.0.0.1:5000/api/user/gastos', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const expensesData = response.data;
-      setExpenses(expensesData);
-
-      const events = transformExpensesToEvents(expensesData);
-      setEvents(events);
-
-      const chartResponse = await axios.post(
+      const response = await axios.post(
         'http://127.0.0.1:5000/api/gasto/filtered',
-        {
-          user_id: userID,
-          ...filters,
-        },
+        { ...filters },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -84,13 +77,20 @@ const ExpenseDashboard = () => {
         }
       );
 
-      const expenseData = chartResponse.data;
+      const expensesData = response.data;
+      setExpenses(expensesData);
+      setFilteredExpenses(expensesData); // Inicializar con la lista completa de gastos
+
+
+      const events = transformExpensesToEvents(expensesData);
+      setEvents(events);
+
       const data = {
-        labels: expenseData.map((item) => item.Descripcion),
+        labels: expensesData.map((item) => item.Descripcion),
         datasets: [
           {
             label: 'Tus gastos',
-            data: expenseData.map((item) => item.Monto),
+            data: expensesData.map((item) => item.Monto),
             backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
           },
         ],
@@ -100,6 +100,148 @@ const ExpenseDashboard = () => {
       console.error('Error al obtener los datos', error);
     }
   }, [navigate]);
+
+  const handleSearchChange = (event) => {
+    const searchValue = event.target.value.toLowerCase();
+    setSearchTerm(searchValue);
+  
+    // Filtrar los gastos por descripción
+    const filtered = expenses.filter((expense) =>
+      expense.Descripcion.toLowerCase().includes(searchValue)
+    );
+  
+    // Actualizar los datos filtrados
+    setFilteredExpenses(filtered);
+  
+    // Actualizar eventos del calendario
+    const events = transformExpensesToEvents(filtered);
+    setEvents(events);
+  
+    // Actualizar los datos de la gráfica
+    const groupedData = filtered.reduce((acc, curr) => {
+      const { Descripcion, Monto } = curr;
+      if (!acc[Descripcion]) {
+        acc[Descripcion] = 0;
+      }
+      acc[Descripcion] += Monto;
+      return acc;
+    }, {});
+  
+    const chartLabels = Object.keys(groupedData);
+    const chartValues = Object.values(groupedData);
+  
+    const data = {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'Tus gastos',
+          data: chartValues,
+          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+        },
+      ],
+    };
+  
+    setChartData(data);
+  };
+
+  const handleGeneratePDF = () => {
+    const doc = new jsPDF();
+    const totalMonto = filteredExpenses.reduce(
+      (acc, expense) => acc + (isNaN(expense.Monto) ? 0 : Number(expense.Monto)),
+      0
+    );
+  
+    // Agregar título y fecha de generación
+    doc.setFontSize(18);
+    doc.text('Reporte de Gastos', 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Fecha de Generación: ${new Date().toLocaleDateString()}`, 14, 30);
+  
+    // Mostrar filtros aplicados
+    let yPosition = 40; // Posición inicial para los filtros
+    if (Object.keys(currentFilters).length > 0 || searchTerm) {
+      doc.setFontSize(12);
+      doc.text('Filtros Aplicados:', 14, yPosition);
+      yPosition += 10;
+  
+      if (currentFilters.categoria) {
+        doc.text(`- Categoría: ${currentFilters.categoria}`, 14, yPosition);
+        yPosition += 10;
+      }
+      if (currentFilters.subcategoria) {
+        doc.text(`- Subcategoría: ${currentFilters.subcategoria}`, 14, yPosition);
+        yPosition += 10;
+      }
+      if (currentFilters.periodicidad) {
+        doc.text(`- Periodicidad: ${currentFilters.periodicidad}`, 14, yPosition);
+        yPosition += 10;
+      }
+      if (currentFilters.periodico !== undefined) {
+        doc.text(
+          `- Periódico/Único: ${currentFilters.periodico === '1' ? 'Periódico' : 'Único'}`,
+          14,
+          yPosition
+        );
+        yPosition += 10;
+      }
+      if (currentFilters.fecha) {
+        doc.text(`- Fecha: ${new Date(currentFilters.fecha).toLocaleDateString()}`, 14, yPosition);
+        yPosition += 10;
+      }
+      if (currentFilters.fecha_inicio && currentFilters.fecha_fin) {
+        doc.text(
+          `- Rango de Fechas: ${new Date(currentFilters.fecha_inicio).toLocaleDateString()} - ${new Date(
+            currentFilters.fecha_fin
+          ).toLocaleDateString()}`,
+          14,
+          yPosition
+        );
+        yPosition += 10;
+      }
+      if (searchTerm) {
+        doc.text(`- Búsqueda: ${searchTerm}`, 14, yPosition);
+        yPosition += 10;
+      }
+    }
+  
+    // Generar la tabla con los datos filtrados
+    const tableColumn = [
+      'Descripción',
+      'Monto',
+      'Categoría',
+      'Subcategoría',
+      'Periodicidad',
+      'Es Único',
+      'Fecha',
+    ];
+    const tableRows = filteredExpenses.map((expense) => [
+      expense.Descripcion || 'N/A',
+      `$${(isNaN(expense.Monto) ? 0 : Number(expense.Monto)).toFixed(2)}`,
+      expense.Categoria || 'N/A',
+      expense.Subcategoria || 'N/A',
+      expense.Periodicidad || 'N/A',
+      expense.Periodico === 'Único' ? 'Sí' : 'No',
+      expense.Fecha ? new Date(expense.Fecha).toLocaleDateString() : 'N/A',
+    ]);
+  
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: yPosition + 10,
+    });
+  
+    // Agregar el total de los montos debajo de la tabla
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.text(`Total: $${totalMonto.toFixed(2)}`, 14, finalY);
+  
+    // Descargar el archivo
+    doc.save('reporte_gastos.pdf');
+  };
+  
+
+  
+  
 
   useEffect(() => {
     fetchExpenses();
@@ -133,7 +275,6 @@ const ExpenseDashboard = () => {
 
   const handleEdit = (idGasto) => {
     navigate(`/dashboard/edit-expense/${idGasto}`);
-
   };
 
   const handleEventClick = (event, e) => {
@@ -150,6 +291,8 @@ const ExpenseDashboard = () => {
     setSelectedDate(null);
   };
 
+
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if ((selectedExpense || selectedDate) && !e.target.closest('.event-popover')) {
@@ -164,6 +307,12 @@ const ExpenseDashboard = () => {
   }, [selectedExpense, selectedDate]);
 
   const handleApplyFilters = (filters) => {
+    const cleanFilters = { ...filters };
+
+    // Si el filtro de "periodico" no está seleccionado, elimínalo
+    if (!filters.periodico) {
+      delete cleanFilters.periodico;
+    }
     setCurrentFilters(filters);
     fetchExpenses(filters);
     setShowFilterModal(false);
@@ -215,6 +364,12 @@ const ExpenseDashboard = () => {
               onClick={() => navigate('/dashboard/add-expense')}
             >
               <i className="bi bi-plus"></i> Agregar Gasto
+            </button>
+            <button
+              className="btn btn-primary add-income-button"
+              onClick={handleGeneratePDF}
+            >
+              <i className="bi bi-file-earmark-pdf"></i> Generar Reporte PDF
             </button>
           </div>
 
@@ -281,7 +436,6 @@ const ExpenseDashboard = () => {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleAddExpenseClick}
-                
               >
                 Agregar Gasto
               </button>
@@ -292,7 +446,15 @@ const ExpenseDashboard = () => {
           )}
         </div>
       </div>
-
+      <div className="search-bar">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Buscar por descripción..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </div>
       <div className="expense-list-section">
         <table className="expense-table">
           <thead>
@@ -302,7 +464,7 @@ const ExpenseDashboard = () => {
               <th>Categoría</th>
               <th>Subcategoría</th>
               <th>Periodicidad</th>
-              <th>Es Único</th> {/* Cambiar a "Es Único" */}
+              <th>Es Único</th>
               <th>Fecha</th>
               <th>Periódico/Único</th>
               <th>Editar</th>
@@ -310,16 +472,16 @@ const ExpenseDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {expenses.map((expense) => (
+            {filteredExpenses.map((expense) => (
               <tr key={expense.ID_Gasto}>
                 <td>{expense.Descripcion}</td>
                 <td>{expense.Monto}</td>
                 <td>{expense.Categoria}</td>
-                <td>{expense.Subcategoria || "N/A"}</td>
-                <td>{expense.Periodicidad || "N/A"}</td>
-                <td>{expense.Periodico === 0 ? 'Sí' : 'No'}</td> {/* Mostrar "Sí" si es único */}
+                <td>{expense.Subcategoria || 'N/A'}</td>
+                <td>{expense.Periodicidad || 'N/A'}</td>
+                <td>{expense.Periodico === 'Único' ? 'Sí' : 'No'}</td>
                 <td>{new Date(expense.Fecha).toISOString().split('T')[0]}</td>
-                <td>{expense.Periodico ? 'Periódico' : 'Único'}</td>
+                <td>{expense.Periodico}</td>
                 <td>
                   <button
                     className="btn btn-warning btn-sm"
@@ -351,7 +513,7 @@ const ExpenseDashboard = () => {
       )}
 
       {showFilterModal && (
-        <FilterModal
+        <FilterModalGastos
           initialFilters={currentFilters}
           onApplyFilters={handleApplyFilters}
           onClearFilters={handleClearFilters}

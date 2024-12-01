@@ -798,65 +798,105 @@ def eliminar_gasto(id_gasto):
 
 
 
-@app.route('/api/gasto/filtered', methods=['POST'], endpoint='gasto_componente_obtener')
+@app.route('/api/gasto/filtered', methods=['POST'], endpoint='filtrar_gastos')
 @jwt_refresh_if_active
 def filtrar_gastos_usuario():
-    data = request.json
-    id_usuario = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+    """
+    Endpoint para obtener datos de los gastos filtrados según los parámetros proporcionados.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+    data = request.json  # Filtros enviados desde el frontend
+
+    # Obtener los filtros
     categoria = data.get('categoria', None)
-    periodico = data.get('periodico', None)
-    fecha_inicio = data.get('fecha_inicio', None)
-    fecha_fin = data.get('fecha_fin', None)
+    subcategoria = data.get('subcategoria', None)
+    periodicidad = data.get('periodicidad', None)
+    periodico = data.get('periodico', None)  # Booleano: 1 (periódico), 0 (único)
+    fecha = data.get('fecha', None)  # Fecha específica
+    fecha_inicio = data.get('fecha_inicio', None)  # Fecha de inicio del rango
+    fecha_fin = data.get('fecha_fin', None)  # Fecha de fin del rango
 
     # Conexión a la base de datos
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
 
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary=True)
 
-    # Construir la consulta de filtrado dinámico
+    # Construir la consulta SQL con filtros dinámicos
     query = """
-    SELECT ID_Gasto, Descripcion, Monto, Fecha, Categoria, Periodico
-    FROM Gasto
-    WHERE ID_Usuario = %s
+    SELECT 
+        G.ID_Gasto, 
+        G.Descripcion, 
+        G.Monto, 
+        G.Fecha, 
+        G.Categoria, 
+        S.Nombre AS Subcategoria, 
+        G.Periodicidad, 
+        G.Periodico
+    FROM Gasto G
+    LEFT JOIN Subcategoria S ON G.ID_Subcategoria = S.ID_Subcategoria
+    WHERE G.ID_Usuario = %s
     """
-    query_params = [id_usuario]
+    params = [user_id]
 
+    # Aplicar filtros dinámicamente
     if categoria:
-        query += " AND Categoria = %s"
-        query_params.append(categoria)
-    
-    if periodico is not None:
-        query += " AND Periodico = %s"
-        query_params.append(periodico)
-    
+        query += " AND G.Categoria = %s"
+        params.append(categoria)
+
+    if subcategoria:
+        query += " AND S.Nombre = %s"
+        params.append(subcategoria)
+
+    if periodicidad:
+        query += " AND G.Periodicidad = %s"
+        params.append(periodicidad)
+
+    if periodico is not None:  # Si se envía el filtro, aplicar
+        query += " AND G.Periodico = %s"
+        params.append(periodico)
+
+    if fecha:
+        query += " AND G.Fecha = %s"
+        params.append(fecha)
+
     if fecha_inicio and fecha_fin:
-        query += " AND Fecha BETWEEN %s AND %s"
-        query_params.append(fecha_inicio)
-        query_params.append(fecha_fin)
+        query += " AND G.Fecha BETWEEN %s AND %s"
+        params.append(fecha_inicio)
+        params.append(fecha_fin)
 
-    query += " ORDER BY Fecha DESC"
+    query += " ORDER BY G.Fecha DESC"  # Ordenar por fecha descendente
 
-    cursor.execute(query, tuple(query_params))
-    gastos = cursor.fetchall()
+    try:
+        # Ejecutar la consulta
+        cursor.execute(query, params)
+        gastos_filtrados = cursor.fetchall()
 
-    connection.close()
+        # Cerrar conexión
+        connection.close()
 
-    # Transformar los resultados en un formato JSON
-    gastos_json = [
-        {
-            "ID_Gasto": gasto[0],
-            "Descripcion": gasto[1],
-            "Monto": gasto[2],
-            "Fecha": gasto[3].strftime('%Y-%m-%d'),
-            "Categoria": gasto[4],
-            "Periodico": gasto[5]
-        }
-        for gasto in gastos
-    ]
+        # Transformar los resultados para JSON
+        gastos_json = [
+            {
+                "ID_Gasto": gasto["ID_Gasto"],
+                "Descripcion": gasto["Descripcion"],
+                "Monto": gasto["Monto"],
+                "Fecha": gasto["Fecha"].strftime('%Y-%m-%d'),
+                "Categoria": gasto["Categoria"],
+                "Subcategoria": gasto["Subcategoria"] or "N/A",
+                "Periodicidad": gasto["Periodicidad"] or "N/A",
+                "Periodico": "Periódico" if gasto["Periodico"] else "Único",
+            }
+            for gasto in gastos_filtrados
+        ]
 
-    return jsonify(gastos_json), 200
+        return jsonify(gastos_json), 200
+
+    except Exception as e:
+        connection.close()
+        return jsonify({"error": f"Error al filtrar los gastos: {str(e)}"}), 500
+
 
 
 
