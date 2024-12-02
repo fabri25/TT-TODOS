@@ -199,3 +199,21 @@
   .submenu li a:hover {
     background-color: #1E6DC7;
   }
+  .top-bar-buttons {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.top-bar-buttons button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.top-bar-buttons button:hover {
+    color: #2196f3;
+}
+

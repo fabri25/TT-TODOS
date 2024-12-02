@@ -4,6 +4,7 @@ import '../styles/NewLayout.css';
 import logo1 from '../assets/images/logo1.png';
 import FloatingTab from './FloatingTab';
 import FloatingTabIncome from './FloatingTabIncome';
+import ConfirmationModal from './ConfirmationModal'; // Importar el modal de confirmación
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 const NewLayout = () => {
@@ -14,6 +15,7 @@ const NewLayout = () => {
   const [fechaUltimoIngreso, setFechaUltimoIngreso] = useState('');
   const [perteneceAGrupo, setPerteneceAGrupo] = useState(false);
   const [misGrupos, setMisGrupos] = useState([]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false); // Estado para mostrar el modal de confirmación
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,6 +67,28 @@ const NewLayout = () => {
     setActiveMenu(activeMenu === menu ? null : menu);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/');
+  };
+
+  const handleSettings = () => {
+    navigate('/dashboard/configuracion');
+  };
+
+  const openLogoutModal = () => {
+    setShowLogoutModal(true);
+  };
+
+  const closeLogoutModal = () => {
+    setShowLogoutModal(false);
+  };
+
+  const confirmLogout = () => {
+    handleLogout();
+    closeLogoutModal();
+  };
+
   return (
     <div className="new-layout">
       <aside className="sidebar">
@@ -108,7 +132,6 @@ const NewLayout = () => {
               </ul>
             </li>
 
-            {/* Nueva opción: Metas */}
             <li className={`menu-item ${activeMenu === 'metas' ? 'active' : ''}`} onClick={() => toggleMenu('metas')}>
               <div className="dropdown-menu-button">
                 <i className="bi bi-bar-chart"></i> Metas Financieras <i className={`bi bi-chevron-${activeMenu === 'metas' ? 'up' : 'down'}`}></i>
@@ -122,7 +145,16 @@ const NewLayout = () => {
         </div>
       </aside>
       <div className="main-content">
-        <header className="top-bar"></header>
+        <header className="top-bar">
+          <div className="top-bar-buttons">
+            <button className="btn btn-outline-light" onClick={handleSettings}>
+              <i className="bi bi-gear"></i>
+            </button>
+            <button className="btn btn-outline-light" onClick={openLogoutModal}>
+              <i className="bi bi-power"></i>
+            </button>
+          </div>
+        </header>
         <main className="content">
           {showFloatingTab && <FloatingTab onSave={handleSave} />}
           {showFloatingTabIncome && (
@@ -135,6 +167,15 @@ const NewLayout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Modal de confirmación para cerrar sesión */}
+      {showLogoutModal && (
+        <ConfirmationModal
+          message="¿Estás seguro de que deseas cerrar sesión?"
+          onConfirm={confirmLogout}
+          onCancel={closeLogoutModal}
+        />
+      )}
     </div>
   );
 };
