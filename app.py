@@ -2039,6 +2039,150 @@ def actualizar_gasto(id_gasto):
         connection.close()
 
 
+@app.route('/api/grupo/<int:grupo_id>/metas/<int:meta_id>', methods=['GET'], endpoint='detalle_meta_grupal')
+@jwt_refresh_if_active
+def obtener_meta_grupal(grupo_id, meta_id):
+    user_id = get_jwt_identity()
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Verificar si el usuario pertenece al grupo
+        query_verificar = """
+        SELECT Confirmado
+        FROM Miembro_Grupo
+        WHERE ID_Usuario = %s AND ID_Grupo = %s AND Confirmado = 1
+        """
+        cursor.execute(query_verificar, (user_id, grupo_id))
+        miembro = cursor.fetchone()
+        if not miembro:
+            return jsonify({"error": "No tienes acceso a este grupo"}), 403
+
+        # Obtener la información de la meta grupal
+        query_meta = """
+        SELECT 
+            ID_Ahorro_Grupal AS MetaID,
+            Descripcion,
+            Monto_Objetivo,
+            Monto_Actual,
+            Fecha_Inicio,
+            Fecha_Limite
+        FROM Meta_Ahorro_Grupal
+        WHERE ID_Ahorro_Grupal = %s AND ID_Grupo = %s
+        """
+        cursor.execute(query_meta, (meta_id, grupo_id))
+        meta = cursor.fetchone()
+
+        if not meta:
+            return jsonify({"error": "Meta no encontrada"}), 404
+
+        # Obtener los aportes relacionados con la meta
+        query_aportes = """
+        SELECT 
+            ID_Aporte,
+            ID_Meta_Ahorro,
+            Monto_Aporte,
+            Fecha_Aporte,
+            (SELECT CONCAT(Nombre, ' ', Apellido_P, ' ', Apellido_M)
+             FROM Usuario
+             WHERE Usuario.ID_Usuario = Aporte_Grupal.ID_Usuario) AS Responsable
+        FROM Aporte_Grupal
+        WHERE ID_Meta_Ahorro = %s
+        """
+        cursor.execute(query_aportes, (meta_id,))
+        aportes = cursor.fetchall()
+
+        meta["Aportes"] = aportes
+
+        connection.close()
+        return jsonify(meta), 200
+
+    except Exception as e:
+        connection.close()
+        return jsonify({"error": f"Error al obtener la meta grupal: {str(e)}"}), 500
+
+
+
+@app.route('/api/grupo/<int:grupo_id>/metas/<int:meta_id>/aportes', methods=['POST'], endpoint='registrar_aporte_grupal')
+@jwt_refresh_if_active
+def registrar_aporte_grupal(grupo_id, meta_id):
+    user_id = get_jwt_identity()
+    data = request.json
+
+    print("Datos recibidos del frontend:", data)  # Debug para verificar qué datos llegan del front
+
+    monto = data.get("monto")
+    fecha = data.get("fecha")
+
+    if not monto or not fecha:
+        return jsonify({"error": "Faltan datos obligatorios (monto, fecha)."}), 400
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Verificar si el usuario pertenece al grupo
+        query_verificar = """
+        SELECT Confirmado
+        FROM Miembro_Grupo
+        WHERE ID_Usuario = %s AND ID_Grupo = %s AND Confirmado = 1
+        """
+        cursor.execute(query_verificar, (user_id, grupo_id))
+        miembro = cursor.fetchone()
+        if not miembro:
+            return jsonify({"error": "No tienes acceso a este grupo"}), 403
+
+        # Verificar si la meta existe y calcular el monto faltante
+        query_meta = """
+        SELECT Monto_Objetivo, Monto_Actual
+        FROM Meta_Ahorro_Grupal
+        WHERE ID_Ahorro_Grupal = %s AND ID_Grupo = %s
+        """
+        cursor.execute(query_meta, (meta_id, grupo_id))
+        meta = cursor.fetchone()
+
+        if not meta:
+            return jsonify({"error": "Meta grupal no encontrada"}), 404
+
+        faltante = meta["Monto_Objetivo"] - meta["Monto_Actual"]
+        if monto > faltante:
+            return jsonify({"error": "El monto del aporte excede el monto faltante para alcanzar la meta."}), 400
+
+        # Registrar el aporte
+        query_aporte = """
+        INSERT INTO Aporte_Grupal (ID_Meta_Ahorro, ID_Usuario, Monto_Aporte, Fecha_Aporte)
+        VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query_aporte, (meta_id, user_id, monto, fecha))
+
+        # Actualizar el monto actual de la meta
+        query_update_meta = """
+        UPDATE Meta_Ahorro_Grupal
+        SET Monto_Actual = Monto_Actual + %s
+        WHERE ID_Ahorro_Grupal = %s AND ID_Grupo = %s
+        """
+        cursor.execute(query_update_meta, (monto, meta_id, grupo_id))
+
+        connection.commit()
+        return jsonify({"message": "Aporte registrado exitosamente."}), 201
+
+    except Exception as e:
+        connection.rollback()
+        print("Error en el servidor:", str(e))  # Debug para errores del servidor
+        return jsonify({"error": f"Error al registrar el aporte: {str(e)}"}), 500
+
+    finally:
+        connection.close()
+
+
+
 
 
 if __name__ == '__main__':
