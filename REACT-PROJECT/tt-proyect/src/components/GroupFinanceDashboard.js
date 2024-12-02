@@ -4,12 +4,15 @@ import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ConfirmationModal from './ConfirmationModal';
-import FilterModal from './FilterModal';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/ExpenseDashboard.css'; // Reutilizamos los estilos
 import CustomToolbar from './CustomToolbar';
+import FilterModal from './FilterModalGastosGrupales';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import logo1 from '../assets/images/logo1.png';
 
 Chart.register(ArcElement, Tooltip, Legend);
 
@@ -28,6 +31,10 @@ const GroupFinanceDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
+  const [searchTerm, setSearchTerm] = useState(''); // Término de búsqueda
+  const [claimingExpense, setClaimingExpense] = useState(null); // Gasto en proceso de reclamación
+  const [showClaimModal, setShowClaimModal] = useState(false); // Mostrar el modal de reclamación
+  const [filteredGroupExpenses, setFilteredGroupExpenses] = useState([]); // Gastos filtrados por búsqueda
   const navigate = useNavigate();
   const { grupoId } = useParams(); // Obtener el ID del grupo desde la URL
 
@@ -71,21 +78,26 @@ const GroupFinanceDashboard = () => {
         return;
       }
 
-      const response = await axios.get(`http://127.0.0.1:5000/api/grupo/${grupoId}/gastos`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.post(
+        `http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/filtrados`,
+        filters,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       // Mapear los datos a los nombres de campos esperados
-      const expenses = response.data.map(expense => ({
-        ID_Gasto: expense.ID_Gasto_Grupal, // Renombrar campo
+      const expenses = response.data.map((expense) => ({
+        ID_Gasto: expense.ID_Gasto,
         Descripcion: expense.Descripcion,
         Monto: expense.Monto,
         Fecha: expense.Fecha,
-        Responsable: expense.Responsable, // Ahora obtenemos el campo directamente
+        Responsable: expense.Responsable,
         Estado: expense.Estado,
       }));
 
       setGroupExpenses(expenses);
+      setFilteredGroupExpenses(expenses); // Inicializar con la lista completa de gastos
 
       const events = transformExpensesToEvents(expenses);
       setEvents(events);
@@ -96,54 +108,193 @@ const GroupFinanceDashboard = () => {
 
   const fetchChartData = useCallback(async (filters = {}) => {
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/');
-            return;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/');
+        return;
+      }
+
+      const response = await axios.post(
+        `http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/filtrados`,
+        filters,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
+      );
 
-        const response = await axios.post(
-            `http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/filtrados`,
-            {
-                ...filters, // Enviar filtros al backend
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            }
-        );
+      const expenseData = response.data;
 
-        const expenseData = response.data;
+      const data = {
+        labels: expenseData.map((item) => item.Descripcion),
+        datasets: [
+          {
+            label: 'Gastos del grupo',
+            data: expenseData.map((item) => item.Monto),
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+          },
+        ],
+      };
 
-        const data = {
-            labels: expenseData.map((item) => item.Descripcion),
-            datasets: [
-                {
-                    label: 'Gastos del grupo',
-                    data: expenseData.map((item) => item.Monto),
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
-                },
-            ],
-        };
-
-        setChartData(data);
+      setChartData(data);
     } catch (error) {
-        console.error('Error al obtener los datos para la gráfica:', error);
+      console.error('Error al obtener los datos para la gráfica:', error);
     }
-}, [grupoId, navigate]);
+  }, [grupoId, navigate]);
 
   useEffect(() => {
     fetchGroupInfo();
-    fetchGroupExpenses();
-    fetchChartData();
+    fetchGroupExpenses(); // Llama al endpoint sin filtros
+    fetchChartData(); // Llama al endpoint sin filtros
   }, [fetchGroupInfo, fetchGroupExpenses, fetchChartData]);
 
   const handleDelete = (id) => {
     setExpenseToDelete(id);
     setShowModal(true);
   };
+
+  const handleOpenClaimModal = (expenseId) => {
+    setClaimingExpense(expenseId);
+    setShowClaimModal(true);
+  };
+
+  const handleSearchChange = (event) => {
+    const searchValue = event.target.value.toLowerCase();
+    setSearchTerm(searchValue);
+  
+    // Filtrar los gastos por descripción
+    const filtered = groupExpenses.filter((expense) =>
+      expense.Descripcion.toLowerCase().includes(searchValue)
+    );
+  
+    // Actualizar los datos filtrados
+    setFilteredGroupExpenses(filtered);
+  
+    // Actualizar eventos del calendario
+    const events = transformExpensesToEvents(filtered);
+    setEvents(events);
+  
+    // Actualizar los datos de la gráfica
+    const groupedData = filtered.reduce((acc, curr) => {
+      const { Descripcion, Monto } = curr;
+      if (!acc[Descripcion]) {
+        acc[Descripcion] = 0;
+      }
+      acc[Descripcion] += Monto;
+      return acc;
+    }, {});
+  
+    const chartLabels = Object.keys(groupedData);
+    const chartValues = Object.values(groupedData);
+  
+    const data = {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'Gastos del grupo',
+          data: chartValues,
+          backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+        },
+      ],
+    };
+  
+    setChartData(data);
+  };
+
+  const handleGeneratePDF = () => {
+    const doc = new jsPDF();
+  
+    // Agregar el logo en la esquina superior izquierda
+    const img = new Image();
+    img.src = logo1;
+    doc.addImage(img, 'PNG', 10, 10, 30, 15); // Coordenadas (x, y) y tamaño (ancho, alto)
+  
+    // Agregar título y fecha de generación
+    doc.setFontSize(18);
+    doc.text('Reporte de Gastos del Grupo', 50, 20);
+    doc.setFontSize(12);
+    doc.text(`Fecha de Generación: ${new Date().toLocaleDateString()}`, 14, 40);
+  
+    // Mostrar filtros aplicados
+    let yPosition = 50;
+    if (Object.keys(currentFilters).length > 0 || searchTerm) {
+      doc.setFontSize(12);
+      doc.text('Filtros Aplicados:', 14, yPosition);
+      yPosition += 10;
+  
+      if (currentFilters.categoria) {
+        doc.text(`- Categoría: ${currentFilters.categoria}`, 14, yPosition);
+        yPosition += 10;
+      }
+      if (currentFilters.fecha_inicio && currentFilters.fecha_fin) {
+        doc.text(
+          `- Rango de Fechas: ${new Date(currentFilters.fecha_inicio).toLocaleDateString()} - ${new Date(
+            currentFilters.fecha_fin
+          ).toLocaleDateString()}`,
+          14,
+          yPosition
+        );
+        yPosition += 10;
+      }
+      if (searchTerm) {
+        doc.text(`- Búsqueda: ${searchTerm}`, 14, yPosition);
+        yPosition += 10;
+      }
+    }
+  
+    // Generar la tabla con los datos filtrados
+    const tableColumn = ['Descripción', 'Monto', 'Responsable', 'Estado', 'Fecha'];
+    const tableRows = filteredGroupExpenses.map((expense) => [
+      expense.Descripcion || 'N/A',
+      `$${Number(expense.Monto).toFixed(2)}`,
+      expense.Responsable || 'N/A',
+      expense.Estado || 'N/A',
+      expense.Fecha ? new Date(expense.Fecha).toLocaleDateString() : 'N/A',
+    ]);
+  
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: yPosition + 10,
+    });
+  
+    // Agregar el total de los montos debajo de la tabla
+    const totalMonto = filteredGroupExpenses.reduce(
+      (acc, expense) => acc + (isNaN(expense.Monto) ? 0 : Number(expense.Monto)),
+      0
+    );
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.text(`Total: $${totalMonto.toFixed(2)}`, 14, finalY);
+  
+    // Descargar el archivo
+    doc.save('reporte_gastos_grupo.pdf');
+  };
+  
+  const handleConfirmClaimExpense = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://127.0.0.1:5000/api/grupo/${grupoId}/gasto/${claimingExpense}/reclamar`,
+        {}, // No se necesitan datos en el cuerpo
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.status === 200) {
+        // Actualizar la lista de gastos después de reclamar
+        fetchGroupExpenses();
+        setShowClaimModal(false); // Cerrar el modal
+        setClaimingExpense(null); // Resetear el estado
+      }
+    } catch (error) {
+      console.error('Error al reclamar el gasto:', error);
+      setShowClaimModal(false); // Cerrar el modal incluso si falla
+      setClaimingExpense(null);
+    }
+  };
+  
+  
 
   const confirmDelete = async () => {
     if (!expenseToDelete) return;
@@ -199,14 +350,14 @@ const GroupFinanceDashboard = () => {
 
   const handleApplyFilters = (filters) => {
     setCurrentFilters(filters);
-    fetchGroupExpenses(filters);
-    fetchChartData(); // Actualizar gráfica al aplicar filtros
+    fetchGroupExpenses(filters); // Llama con filtros
+    fetchChartData(filters); // Actualizar gráfica al aplicar filtros
     setShowFilterModal(false);
   };
 
   const handleClearFilters = () => {
     setCurrentFilters({});
-    fetchGroupExpenses();
+    fetchGroupExpenses(); // Llama sin filtros
     fetchChartData(); // Actualizar gráfica al limpiar filtros
     setShowFilterModal(false);
   };
@@ -256,6 +407,12 @@ const GroupFinanceDashboard = () => {
             >
               <i className="bi bi-plus"></i> Agregar Gasto
             </button>
+            <button
+              className="btn btn-primary add-income-button"
+              onClick={handleGeneratePDF}
+            >
+              <i className="bi bi-file-earmark-pdf"></i> Generar Reporte PDF
+            </button>
           </div>
 
           <div className="expense-calendar">
@@ -275,7 +432,7 @@ const GroupFinanceDashboard = () => {
           </div>
         </div>
       </div>
-              {/* Botón centrado para "Ver Metas" */}
+      {/* Botón centrado para "Ver Metas" */}
       <div className="view-goals-button-container" style={{ textAlign: 'center', marginTop: '20px' }}>
         <button
           className="btn btn-success"
@@ -284,7 +441,15 @@ const GroupFinanceDashboard = () => {
           Ver Metas
         </button>
       </div>
-
+      <div className="search-bar" style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Buscar por descripción..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </div>
       <div className="expense-list-section">
         <table className="expense-table">
           <thead>
@@ -298,11 +463,22 @@ const GroupFinanceDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {groupExpenses.map((expense) => (
+            {filteredGroupExpenses.map((expense) => (
               <tr key={expense.ID_Gasto}>
                 <td>{expense.Descripcion}</td>
                 <td>{expense.Monto}</td>
-                <td>{expense.Responsable}</td>
+                <td>
+                  {expense.Responsable === 'Pendiente' ? (
+                    <button
+                      className="btn btn-link text-decoration-none"
+                      onClick={() => handleOpenClaimModal(expense.ID_Gasto)}
+                    >
+                      Registra este gasto como tuyo
+                    </button>
+                  ) : (
+                    expense.Responsable
+                  )}
+                </td>
                 <td>{expense.Estado}</td>
                 <td>{new Date(expense.Fecha).toISOString().split('T')[0]}</td>
                 <td>
@@ -316,6 +492,19 @@ const GroupFinanceDashboard = () => {
               </tr>
             ))}
           </tbody>
+
+          {showClaimModal && (
+            <ConfirmationModal
+              message="¿Estás seguro de que deseas registrar este gasto como tuyo?"
+              onConfirm={handleConfirmClaimExpense}
+              onCancel={() => {
+                setShowClaimModal(false);
+                setClaimingExpense(null);
+              }}
+            />
+          )}
+
+
         </table>
       </div>
 

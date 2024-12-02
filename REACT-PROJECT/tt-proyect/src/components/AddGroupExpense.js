@@ -103,6 +103,7 @@ const AddGroupExpense = () => {
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="descripcion">Descripción</label>
+          <br></br><br></br>
           <input
             type="text"
             id="descripcion"
@@ -116,6 +117,7 @@ const AddGroupExpense = () => {
 
         <div className="form-group">
           <label htmlFor="monto">Monto</label>
+          <br></br><br></br>
           <input
             type="number"
             id="monto"
@@ -129,6 +131,7 @@ const AddGroupExpense = () => {
 
         <div className="form-group">
           <label htmlFor="fecha">Fecha</label>
+          <br></br><br></br>
           <input
             type="date"
             id="fecha"
@@ -144,6 +147,7 @@ const AddGroupExpense = () => {
           <>
             <div className="form-group checkbox-group">
               <label htmlFor="es_mi_gasto">Es mi gasto</label>
+              <br></br><br></br>
               <input
                 type="checkbox"
                 id="es_mi_gasto"
@@ -157,6 +161,7 @@ const AddGroupExpense = () => {
             {!expenseData.es_mi_gasto && (
               <div className="form-group">
                 <label htmlFor="asignado_a">Asignar a</label>
+                <br></br><br></br>
                 <select
                   id="asignado_a"
                   name="asignado_a"

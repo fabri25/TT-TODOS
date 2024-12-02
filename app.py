@@ -159,12 +159,16 @@ def login():
             # Agrupar ingresos no fijos por descripción y seleccionar el más reciente
             ingresos_no_fijos = {income['Descripcion']: income for income in incomes if income['EsFijo'] == 0}
 
+            # Inicializar variables fuera del bucle
+            fecha_siguiente_ingreso = None  # Inicializamos con un valor por defecto
+            mostrar_tab_periodo = False
+
             # Verificar si hay ingresos no fijos registrados
             if ingresos_no_fijos:
                 for descripcion, income in ingresos_no_fijos.items():
                     fecha_ultimo_ingreso = income['Fecha']
                     periodicidad = income['Periodicidad']
-                    
+
                     # Calcular la fecha de comparación según la periodicidad
                     if periodicidad == 'Diario':
                         fecha_siguiente_ingreso = fecha_ultimo_ingreso + timedelta(days=1)
@@ -175,9 +179,11 @@ def login():
                     elif periodicidad == 'Mensual':
                         fecha_siguiente_ingreso = fecha_ultimo_ingreso + relativedelta(months=1)
 
-                    if datetime.now().date() >= fecha_siguiente_ingreso:
+                    # Validar si la fecha siguiente ingreso está definida y si es necesario mostrar el tab
+                    if fecha_siguiente_ingreso and datetime.now().date() >= fecha_siguiente_ingreso:
                         mostrar_tab_periodo = True
                         break
+
 
         connection.close()
 
@@ -1651,20 +1657,20 @@ def obtener_gastos_grupo(grupo_id):
         cursor.close()
         connection.close()
 
-
-@app.route('/api/grupo/<int:grupo_id>/gastos/filtrados', methods=['POST'], endpoint='obtener_gasto_grupo_filtado')
+@app.route('/api/grupo/<int:grupo_id>/gastos/filtrados', methods=['POST'], endpoint='obtener_gastos_grupales_filtrados')
 @jwt_refresh_if_active
 def obtener_gastos_grupales_filtrados(grupo_id):
     """
-    Endpoint para obtener datos de los gastos grupales filtrados, agrupados por descripción
-    para construir una gráfica de pastel.
+    Endpoint para obtener los gastos grupales, con soporte para filtros opcionales de estado, responsable, rango de fechas y fecha específica.
+    Si no se aplican filtros, devuelve todos los gastos del grupo.
     """
     user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
     data = request.json
-    estado = data.get('estado', None)
-    asignado_a = data.get('asignado_a', None)
-    fecha_inicio = data.get('fecha_inicio', None)
-    fecha_fin = data.get('fecha_fin', None)
+    estado = data.get('estado', None)  # 'Pagado' o 'Pendiente'
+    responsable_id = data.get('responsable', None)  # ID del miembro responsable
+    fecha = data.get('fecha', None)  # Fecha específica
+    fecha_inicio = data.get('fecha_inicio', None)  # Fecha de inicio del rango
+    fecha_fin = data.get('fecha_fin', None)  # Fecha de fin del rango
 
     # Conexión a la base de datos
     connection = create_connection()
@@ -1686,35 +1692,56 @@ def obtener_gastos_grupales_filtrados(grupo_id):
         if not miembro:
             return jsonify({"error": "No tienes acceso a este grupo"}), 403
 
-        # Construir la consulta SQL para filtrar los gastos grupales
+        # Construir la consulta SQL con filtros dinámicos
         query = """
-        SELECT Descripcion, SUM(Monto) as Monto
-        FROM Gasto_Grupal
-        WHERE ID_Grupo = %s
+        SELECT 
+            G.ID_Gasto_Grupal AS ID_Gasto,
+            G.Descripcion,
+            G.Monto,
+            G.Fecha,
+            G.Estado,
+            CASE 
+                WHEN G.Asignado_A IS NOT NULL THEN CONCAT(U1.Nombre, ' ', U1.Apellido_P, ' ', U1.Apellido_M)
+                WHEN G.ID_Usuario IS NOT NULL THEN CONCAT(U2.Nombre, ' ', U2.Apellido_P, ' ', U2.Apellido_M)
+                ELSE 'Pendiente'
+            END AS Responsable
+        FROM Gasto_Grupal G
+        LEFT JOIN Usuario U1 ON G.Asignado_A = U1.ID_Usuario
+        LEFT JOIN Usuario U2 ON G.ID_Usuario = U2.ID_Usuario
+        WHERE G.ID_Grupo = %s
         """
         params = [grupo_id]
 
+        # Aplicar filtros dinámicamente
         if estado:
-            query += " AND Estado = %s"
+            query += " AND G.Estado = %s"
             params.append(estado)
 
-        if asignado_a:
-            query += " AND Asignado_A = %s"
-            params.append(asignado_a)
+        if responsable_id:
+            query += " AND (G.Asignado_A = %s OR G.ID_Usuario = %s)"
+            params.extend([responsable_id, responsable_id])
 
-        if fecha_inicio and fecha_fin:
-            query += " AND Fecha BETWEEN %s AND %s"
+        if fecha:  # Si hay fecha específica, ignorar rango de fechas
+            query += " AND DATE(G.Fecha) = %s"
+            params.append(fecha)
+        elif fecha_inicio and fecha_fin:
+            query += " AND G.Fecha BETWEEN %s AND %s"
             params.append(fecha_inicio)
             params.append(fecha_fin)
+        elif fecha_inicio:  # Si solo hay fecha de inicio
+            query += " AND G.Fecha >= %s"
+            params.append(fecha_inicio)
+        elif fecha_fin:  # Si solo hay fecha de fin
+            query += " AND G.Fecha <= %s"
+            params.append(fecha_fin)
 
-        query += " GROUP BY Descripcion"
+        # Ordenar los resultados por fecha descendente
+        query += " ORDER BY G.Fecha DESC"
 
         cursor.execute(query, params)
-        gastos_filtrados = cursor.fetchall()
+        gastos = cursor.fetchall()
 
-        connection.close()
-
-        return jsonify(gastos_filtrados), 200
+        return jsonify(gastos), 200
 
     except Exception as e:
         return jsonify({"error": f"Error al obtener los gastos filtrados del grupo: {str(e)}"}), 500
@@ -1724,25 +1751,22 @@ def obtener_gastos_grupales_filtrados(grupo_id):
         connection.close()
 
 
+
 @app.route('/api/grupo/<int:grupo_id>/registrar-gasto', methods=['POST'], endpoint='gasto_grupal')
 @jwt_refresh_if_active
 def registrar_gasto_grupal(grupo_id):
-    """
-    Endpoint para registrar un gasto grupal.
-    """
-    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+    user_id = get_jwt_identity()
     data = request.json
 
     descripcion = data.get('descripcion')
     monto = data.get('monto')
     fecha = data.get('fecha')
-    asignado_a = data.get('asignado_a', None)  # ID del usuario asignado
-    es_mi_gasto = data.get('es_mi_gasto', False)  # Checkbox para "Es mi gasto"
+    asignado_a = data.get('asignado_a', None)
+    es_mi_gasto = data.get('es_mi_gasto', False)
 
     if not descripcion or not monto or not fecha:
         return jsonify({"error": "Faltan datos requeridos (descripción, monto o fecha)."}), 400
 
-    # Conexión a la base de datos
     connection = create_connection()
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
@@ -1750,7 +1774,6 @@ def registrar_gasto_grupal(grupo_id):
     cursor = connection.cursor(dictionary=True)
 
     try:
-        # Verificar si el usuario pertenece al grupo y está confirmado
         query_verificar = """
         SELECT ID_Usuario, ID_Grupo, Confirmado, 
                CASE WHEN ID_Usuario = (SELECT ID_Admin FROM Grupo WHERE ID_Grupo = %s) THEN 1 ELSE 0 END AS es_admin
@@ -1765,14 +1788,9 @@ def registrar_gasto_grupal(grupo_id):
 
         es_admin = miembro['es_admin']
 
-        # Determinar el comportamiento basado en si es administrador o no
         if es_admin and not es_mi_gasto:
-            # Administrador asignando un gasto
-            if not asignado_a and asignado_a != "cualquiera":
-                return jsonify({"error": "Debes asignar el gasto o elegir 'cualquiera'."}), 400
-
-            estado = "Pendiente" if asignado_a != "cualquiera" else "Pendiente"
-            asignado_a = None if asignado_a == "cualquiera" else asignado_a
+            estado = "Pendiente"
+            asignado_a = None if not asignado_a else asignado_a
 
             query_insert = """
             INSERT INTO Gasto_Grupal (Descripcion, Monto, Fecha, ID_Grupo, Asignado_A, Estado)
@@ -1781,7 +1799,6 @@ def registrar_gasto_grupal(grupo_id):
             cursor.execute(query_insert, (descripcion, monto, fecha, grupo_id, asignado_a, estado))
 
         else:
-            # Miembro registrando su propio gasto o administrador seleccionando "Es mi gasto"
             estado = "Pagado"
             query_insert = """
             INSERT INTO Gasto_Grupal (Descripcion, Monto, Fecha, ID_Grupo, ID_Usuario, Estado)
@@ -1800,6 +1817,8 @@ def registrar_gasto_grupal(grupo_id):
     finally:
         cursor.close()
         connection.close()
+
+
 
 @app.route('/api/grupo/metas', methods=['POST'], endpoint='metas_grupales')
 @jwt_refresh_if_active
@@ -2182,6 +2201,67 @@ def registrar_aporte_grupal(grupo_id, meta_id):
         connection.close()
 
 
+@app.route('/api/grupo/<int:grupo_id>/gasto/<int:gasto_id>/reclamar', methods=['PUT'], endpoint='reclamar_gasto')
+@jwt_refresh_if_active
+def reclamar_gasto(grupo_id, gasto_id):
+    """
+    Endpoint para que un usuario reclame un gasto grupal como suyo.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Verificar que el usuario pertenece al grupo y está confirmado
+        query_verificar = """
+        SELECT Confirmado 
+        FROM Miembro_Grupo 
+        WHERE ID_Usuario = %s AND ID_Grupo = %s AND Confirmado = 1
+        """
+        cursor.execute(query_verificar, (user_id, grupo_id))
+        miembro = cursor.fetchone()
+
+        if not miembro:
+            return jsonify({"error": "No tienes acceso a este grupo"}), 403
+
+        # Verificar que el gasto existe y aún está "pendiente"
+        query_gasto = """
+        SELECT ID_Gasto_Grupal, Estado, ID_Usuario
+        FROM Gasto_Grupal
+        WHERE ID_Gasto_Grupal = %s AND ID_Grupo = %s
+        """
+        cursor.execute(query_gasto, (gasto_id, grupo_id))
+        gasto = cursor.fetchone()
+
+        if not gasto:
+            return jsonify({"error": "Gasto no encontrado"}), 404
+
+        if gasto['Estado'] != 'Pendiente' or gasto['ID_Usuario'] is not None:
+            return jsonify({"error": "Este gasto ya ha sido reclamado o no está pendiente."}), 400
+
+        # Actualizar el gasto para asignarlo al usuario
+        query_actualizar = """
+        UPDATE Gasto_Grupal
+        SET ID_Usuario = %s, Estado = 'Pagado'
+        WHERE ID_Gasto_Grupal = %s AND ID_Grupo = %s
+        """
+        cursor.execute(query_actualizar, (user_id, gasto_id, grupo_id))
+        connection.commit()
+
+        return jsonify({"message": "Gasto reclamado exitosamente"}), 200
+
+    except Exception as e:
+        connection.rollback()
+        return jsonify({"error": f"Error al reclamar el gasto: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
 
 
 
