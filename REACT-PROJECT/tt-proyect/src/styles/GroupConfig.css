@@ -50,3 +50,20 @@
 .btn-sm {
   font-size: 0.9em;
 }
+.group-config-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.group-config-actions button {
+  width: 150px;
+  font-size: 14px;
+  padding: 10px;
+}
+.group-config-buttons .btn {
+  font-size: 12px; /* Tamaño más pequeño */
+  padding: 5px 10px; /* Menos espacio interno */
+  width: auto; /* Ajuste automático al contenido */
+  min-width: 100px; /* Tamaño mínimo */
+}

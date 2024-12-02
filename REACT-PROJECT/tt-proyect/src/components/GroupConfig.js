@@ -3,13 +3,18 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/GroupConfig.css';
+import ConfirmationModal from './ConfirmationModal'; // Modal de confirmación
+import ChangeAdminModal from './ChangeAdminModal'; // Nuevo modal para cambiar administrador
 
 const GroupConfig = () => {
   const [groupInfo, setGroupInfo] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false); // Modal de confirmación para eliminar grupo
+  const [modalMessage, setModalMessage] = useState(''); // Mensaje del modal de confirmación
+  const [showChangeAdminModal, setShowChangeAdminModal] = useState(false); // Modal para cambiar administrador
   const navigate = useNavigate();
-  const { grupoId } = useParams(); // ID del grupo desde la URL
+  const { grupoId } = useParams();
 
   useEffect(() => {
     fetchGroupInfo();
@@ -27,7 +32,6 @@ const GroupConfig = () => {
       );
       setGroupInfo(response.data);
 
-      // Añadir el rol de cada miembro en función del administrador del grupo
       const updatedMembers = response.data.Miembros.map((member) => ({
         ...member,
         Rol: member.ID_Usuario === response.data.ID_Admin ? 'Administrador (Tú)' : 'Miembro',
@@ -79,6 +83,55 @@ const GroupConfig = () => {
     navigate(`/dashboard/grupo/${grupoId}/agregar-miembro`);
   };
 
+  const handleDeleteGroup = () => {
+    setModalMessage('¿Estás seguro de que deseas eliminar este grupo? Esta acción no se puede deshacer.');
+    setShowModal(true);
+  };
+
+  const confirmDeleteGroup = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://127.0.0.1:5000/api/grupo/${grupoId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setShowModal(false);
+      navigate('/dashboard/listado_grupos');
+    } catch (error) {
+      console.error('Error al eliminar el grupo:', error);
+      setShowModal(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowModal(false);
+    setModalMessage('');
+  };
+
+  const handleOpenChangeAdminModal = () => {
+    setShowChangeAdminModal(true);
+  };
+
+  const handleCloseChangeAdminModal = () => {
+    setShowChangeAdminModal(false);
+  };
+
+  const handleChangeAdmin = async (newAdminId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://127.0.0.1:5000/api/grupo/${grupoId}/cambiar-admin`,
+        { new_admin_id: newAdminId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      fetchGroupInfo(); // Actualiza la información del grupo
+      navigate('/dashboard/listado_grupos');
+    } catch (error) {
+      console.error('Error al cambiar el administrador:', error);
+    }
+  };
+
   return (
     <div className="group-config-container">
       {loading ? (
@@ -88,7 +141,7 @@ const GroupConfig = () => {
           <h2>Configuración del Grupo: {groupInfo.Nombre_Grupo}</h2>
           <div className="group-config-buttons">
             <button
-              className="btn btn-primary"
+              className="btn btn-primary btn-sm"
               onClick={handleRegisterGoal}
             >
               Registrar Meta
@@ -101,14 +154,14 @@ const GroupConfig = () => {
                 className="invite-code"
               />
               <button
-                className="btn btn-secondary"
+                className="btn btn-secondary btn-sm"
                 onClick={handleCopyCode}
               >
                 Copiar Código
               </button>
             </div>
             <button
-              className="btn btn-success"
+              className="btn btn-success btn-sm"
               onClick={handleAddMember}
             >
               Agregar Miembros
@@ -133,7 +186,7 @@ const GroupConfig = () => {
                   <td>{member.Contacto || 'No disponible'}</td>
                   <td>{member.Rol}</td>
                   <td>
-                    {member.ID_Usuario !== groupInfo.ID_Admin && ( // No mostrar el botón para el administrador
+                    {member.ID_Usuario !== groupInfo.ID_Admin && (
                       <button
                         className="btn btn-danger btn-sm"
                         onClick={() => handleDeleteMember(member.ID_Usuario)}
@@ -146,7 +199,36 @@ const GroupConfig = () => {
               ))}
             </tbody>
           </table>
+          {/* Botones adicionales */}
+          <div className="group-config-actions">
+            <button
+              className="btn btn-danger"
+              onClick={handleDeleteGroup}
+            >
+              Eliminar Grupo
+            </button>
+            <button
+              className="btn btn-warning"
+              onClick={handleOpenChangeAdminModal}
+            >
+              Cambiar Administrador
+            </button>
+          </div>
         </>
+      )}
+      {showModal && (
+        <ConfirmationModal
+          message={modalMessage}
+          onConfirm={confirmDeleteGroup}
+          onCancel={handleCancel}
+        />
+      )}
+      {showChangeAdminModal && (
+        <ChangeAdminModal
+          members={groupMembers}
+          onChangeAdmin={handleChangeAdmin}
+          onClose={handleCloseChangeAdminModal}
+        />
       )}
     </div>
   );
