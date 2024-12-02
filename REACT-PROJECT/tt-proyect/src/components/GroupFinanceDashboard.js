@@ -26,6 +26,7 @@ const GroupFinanceDashboard = () => {
   const [chartData, setChartData] = useState({});
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [currentFilters, setCurrentFilters] = useState({});
+  const [metas, setMetas] = useState([]); // Estado para almacenar las metas grupales
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -294,7 +295,35 @@ const GroupFinanceDashboard = () => {
     }
   };
   
-  
+  // Obtener información de metas grupales
+  const fetchMetasGrupales = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://127.0.0.1:5000/api/grupo/${grupoId}/metas`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const metasConProgreso = response.data.map((meta) => {
+        const progreso = (meta.Monto_Actual / meta.Monto_Objetivo) * 100;
+        return {
+          ...meta,
+          progreso: progreso.toFixed(2), // Calcular el porcentaje de progreso
+        };
+      });
+
+      setMetas(metasConProgreso);
+    } catch (error) {
+      console.error('Error al obtener las metas grupales:', error);
+    }
+  }, [grupoId]);
+
+  useEffect(() => {
+    fetchMetasGrupales();
+  }, [fetchMetasGrupales]);
+
+  const handleViewMetaDetails = (metaId) => {
+    navigate(`/dashboard/grupo/${grupoId}/metas/${metaId}`);
+  };
 
   const confirmDelete = async () => {
     if (!expenseToDelete) return;
@@ -432,15 +461,9 @@ const GroupFinanceDashboard = () => {
           </div>
         </div>
       </div>
-      {/* Botón centrado para "Ver Metas" */}
-      <div className="view-goals-button-container" style={{ textAlign: 'center', marginTop: '20px' }}>
-        <button
-          className="btn btn-success"
-          onClick={handleViewGoals}
-        >
-          Ver Metas
-        </button>
-      </div>
+
+
+       
       <div className="search-bar" style={{ marginBottom: '20px' }}>
         <input
           type="text"
@@ -524,6 +547,52 @@ const GroupFinanceDashboard = () => {
           onClose={() => setShowFilterModal(false)}
         />
       )}
+      <br></br><br></br>
+      <div className="metas-progress-container" style={{ marginTop: '20px' }}>
+        <h3>Progreso de Metas</h3>
+        {metas.length > 0 ? (
+          metas.map((meta) => (
+            <div
+              key={meta.ID_Ahorro_Grupal}
+              className="meta-item"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '20px',
+                gap: '20px',
+              }}
+            >
+              {/* Nombre de la meta */}
+              <span style={{ flex: '1', marginRight: '10px', fontWeight: 'bold' }}>
+                {meta.Descripcion}
+              </span>
+
+              {/* Barra de progreso */}
+              <div className="progress-bar-container" style={{ flex: '3' }}>
+                <div
+                  className="progress"
+                  style={{ width: `${meta.progreso}%` }}
+                ></div>
+                <div className="progress-text">{meta.progreso}%</div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No hay metas registradas.</p>
+        )}
+
+        {/* Botón para ver todas las metas */}
+        <div className="view-goals-button-container" style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button
+            className="btn btn-success"
+            onClick={handleViewGoals}
+            style={{ backgroundColor: '#4caf50', border: 'none', padding: '10px 20px', borderRadius: '5px' }}
+          >
+            Ver Metas
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 };
