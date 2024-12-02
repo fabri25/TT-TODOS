@@ -83,21 +83,25 @@ const GroupFinanceDashboard = () => {
   
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setLoading(true);  // Empieza a cargar
       try {
-        // Aquí va tu código para obtener datos (por ejemplo, usando fetch o axios)
+        // Aquí va tu código para obtener los datos (por ejemplo, usando fetch o axios)
         const response = await fetch("/api/datos");
         const result = await response.json();
-        setData(result);
+        setData(result);  // Establece los datos obtenidos
       } catch (error) {
         console.error("Error al cargar los datos:", error);
       } finally {
-        setLoading(false); // Al terminar de cargar, cambiamos loading a false
+        setLoading(false);  // Al terminar de cargar, cambiamos loading a false
       }
     };
   
-    fetchData();
-  }, [groupExpenses]);
+    // Usamos setTimeout para simular un retraso
+    setTimeout(() => {
+      fetchData();  // Llama a la función después del retraso
+    }, 2000);  // 2000ms (2 segundos)
+    
+  }, []); // Esto solo se ejecutará una vez cuando el componente se monte
 
   const fetchGroupExpenses = useCallback(async (filters = {}) => {
     try {
