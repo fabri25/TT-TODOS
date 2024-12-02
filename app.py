@@ -1682,15 +1682,19 @@ def obtener_gastos_grupales_filtrados(grupo_id):
     try:
         # Verificar si el usuario pertenece al grupo y está confirmado
         query_verificar = """
-        SELECT Confirmado 
-        FROM Miembro_Grupo 
+        SELECT Confirmado,
+               (SELECT ID_Admin FROM Grupo WHERE ID_Grupo = %s) AS ID_Admin
+        FROM Miembro_Grupo
         WHERE ID_Usuario = %s AND ID_Grupo = %s AND Confirmado = 1
         """
-        cursor.execute(query_verificar, (user_id, grupo_id))
+        cursor.execute(query_verificar, (grupo_id, user_id, grupo_id))
         miembro = cursor.fetchone()
 
         if not miembro:
             return jsonify({"error": "No tienes acceso a este grupo"}), 403
+
+        # Determinar si el usuario es administrador
+        es_admin = miembro['ID_Admin'] == user_id
 
         # Construir la consulta SQL con filtros dinámicos
         query = """
@@ -1700,6 +1704,7 @@ def obtener_gastos_grupales_filtrados(grupo_id):
             G.Monto,
             G.Fecha,
             G.Estado,
+            G.ID_Usuario AS ID_Usuario, -- ID del usuario que registró el gasto
             CASE 
                 WHEN G.Asignado_A IS NOT NULL THEN CONCAT(U1.Nombre, ' ', U1.Apellido_P, ' ', U1.Apellido_M)
                 WHEN G.ID_Usuario IS NOT NULL THEN CONCAT(U2.Nombre, ' ', U2.Apellido_P, ' ', U2.Apellido_M)
@@ -1741,10 +1746,78 @@ def obtener_gastos_grupales_filtrados(grupo_id):
         cursor.execute(query, params)
         gastos = cursor.fetchall()
 
-        return jsonify(gastos), 200
+        # Respuesta del endpoint
+        response = {
+            "EsAdmin": es_admin,
+            "UserId": user_id,
+            "Gastos": gastos,
+        }
+
+        return jsonify(response), 200
 
     except Exception as e:
         return jsonify({"error": f"Error al obtener los gastos filtrados del grupo: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.route('/api/grupo/<int:grupo_id>/gastos/<int:gasto_id>', methods=['DELETE'], endpoint='eliminar_gasto_grupal')
+@jwt_required()
+def eliminar_gasto_grupal(grupo_id, gasto_id):
+    """
+    Endpoint para eliminar un gasto grupal.
+    Solo el administrador del grupo o el usuario que registró el gasto pueden eliminarlo.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Verificar si el usuario pertenece al grupo y está confirmado
+        query_verificar = """
+        SELECT Confirmado, ID_Admin 
+        FROM Grupo 
+        INNER JOIN Miembro_Grupo ON Grupo.ID_Grupo = Miembro_Grupo.ID_Grupo
+        WHERE Miembro_Grupo.ID_Usuario = %s AND Grupo.ID_Grupo = %s AND Confirmado = 1
+        """
+        cursor.execute(query_verificar, (user_id, grupo_id))
+        miembro = cursor.fetchone()
+
+        if not miembro:
+            return jsonify({"error": "No tienes acceso a este grupo"}), 403
+
+        # Obtener información del gasto
+        query_gasto = """
+        SELECT ID_Usuario, ID_Grupo
+        FROM Gasto_Grupal
+        WHERE ID_Gasto_Grupal = %s AND ID_Grupo = %s
+        """
+        cursor.execute(query_gasto, (gasto_id, grupo_id))
+        gasto = cursor.fetchone()
+
+        if not gasto:
+            return jsonify({"error": "El gasto no existe o no pertenece a este grupo"}), 404
+
+        # Verificar si el usuario es administrador o el creador del gasto
+        if miembro['ID_Admin'] != user_id and gasto['ID_Usuario'] != user_id:
+            return jsonify({"error": "No tienes permiso para eliminar este gasto"}), 403
+
+        # Eliminar el gasto
+        query_eliminar = "DELETE FROM Gasto_Grupal WHERE ID_Gasto_Grupal = %s"
+        cursor.execute(query_eliminar, (gasto_id,))
+        connection.commit()
+
+        return jsonify({"message": "Gasto eliminado exitosamente"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al eliminar el gasto: {str(e)}"}), 500
 
     finally:
         cursor.close()

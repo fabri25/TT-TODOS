@@ -29,6 +29,8 @@ const GroupFinanceDashboard = () => {
   const [metas, setMetas] = useState([]); // Estado para almacenar las metas grupales
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Nuevo estado para identificar si el usuario es admin
+  const [currentUserId, setCurrentUserId] = useState(null); // Nuevo estado para almacenar el ID del usuario actual
   const [selectedDate, setSelectedDate] = useState(null);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
@@ -51,6 +53,7 @@ const GroupFinanceDashboard = () => {
       };
     });
   };
+  
 
   const fetchGroupInfo = useCallback(async () => {
     try {
@@ -59,17 +62,25 @@ const GroupFinanceDashboard = () => {
         navigate('/');
         return;
       }
-
+  
       const response = await axios.get(`http://127.0.0.1:5000/api/grupo/${grupoId}/info`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+  
       setGroupName(response.data.Nombre_Grupo || 'Grupo');
       setGroupDescription(response.data.Descripcion || 'Sin descripción');
+      setIsAdmin(response.data.EsAdmin); // Suponiendo que el backend devuelve "EsAdmin"
+      setCurrentUserId(response.data.UserId); // Suponiendo que el backend devuelve "UserId"
     } catch (error) {
       console.error('Error al obtener la información del grupo:', error);
       navigate('/'); // Redirigir si hay un error crítico
     }
   }, [grupoId, navigate]);
+  
+  useEffect(() => {
+    const events = transformExpensesToEvents(groupExpenses);
+    setEvents(events);
+  }, [groupExpenses]);
 
   const fetchGroupExpenses = useCallback(async (filters = {}) => {
     try {
@@ -78,34 +89,29 @@ const GroupFinanceDashboard = () => {
         navigate('/');
         return;
       }
-
+  
       const response = await axios.post(
         `http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/filtrados`,
         filters,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // Mapear los datos a los nombres de campos esperados
-      const expenses = response.data.map((expense) => ({
-        ID_Gasto: expense.ID_Gasto,
-        Descripcion: expense.Descripcion,
-        Monto: expense.Monto,
-        Fecha: expense.Fecha,
-        Responsable: expense.Responsable,
-        Estado: expense.Estado,
+  
+      setIsAdmin(response.data.EsAdmin); // Guardar si es administrador
+      setCurrentUserId(response.data.UserId); // Guardar el ID del usuario autenticado
+      const gastos = response.data.Gastos.map((gasto) => ({
+        ...gasto,
+        ID_Usuario: gasto.ID_Usuario || null, // Asegurar que exista ID_Usuario
       }));
-
-      setGroupExpenses(expenses);
-      setFilteredGroupExpenses(expenses); // Inicializar con la lista completa de gastos
-
-      const events = transformExpensesToEvents(expenses);
-      setEvents(events);
+  
+      setGroupExpenses(gastos);
+      setFilteredGroupExpenses(gastos); // Inicializar correctamente
     } catch (error) {
       console.error('Error al obtener los datos del grupo:', error);
     }
-  }, [navigate, grupoId]);
+  }, [grupoId, navigate]);
+  
+  
+  
 
   const fetchChartData = useCallback(async (filters = {}) => {
     try {
@@ -114,7 +120,7 @@ const GroupFinanceDashboard = () => {
         navigate('/');
         return;
       }
-
+  
       const response = await axios.post(
         `http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/filtrados`,
         filters,
@@ -125,9 +131,9 @@ const GroupFinanceDashboard = () => {
           },
         }
       );
-
-      const expenseData = response.data;
-
+  
+      const expenseData = response.data.Gastos; // Cambiado para extraer los gastos
+  
       const data = {
         labels: expenseData.map((item) => item.Descripcion),
         datasets: [
@@ -138,12 +144,13 @@ const GroupFinanceDashboard = () => {
           },
         ],
       };
-
+  
       setChartData(data);
     } catch (error) {
       console.error('Error al obtener los datos para la gráfica:', error);
     }
   }, [grupoId, navigate]);
+  
 
   useEffect(() => {
     fetchGroupInfo();
@@ -327,19 +334,31 @@ const GroupFinanceDashboard = () => {
 
   const confirmDelete = async () => {
     if (!expenseToDelete) return;
-
+  
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/${expenseToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setGroupExpenses(groupExpenses.filter((expense) => expense.ID_Gasto !== expenseToDelete));
-      setShowModal(false);
-      setExpenseToDelete(null);
+      // Llamar al endpoint de eliminación
+      const response = await axios.delete(
+        `http://127.0.0.1:5000/api/grupo/${grupoId}/gastos/${expenseToDelete}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+  
+      if (response.status === 200) {
+        // Filtrar el gasto eliminado de la lista
+        setGroupExpenses(groupExpenses.filter((expense) => expense.ID_Gasto !== expenseToDelete));
+        setFilteredGroupExpenses(filteredGroupExpenses.filter((expense) => expense.ID_Gasto !== expenseToDelete));
+        
+        setShowModal(false); // Cerrar el modal de confirmación
+        setExpenseToDelete(null); // Resetear el gasto seleccionado
+      }
     } catch (error) {
       console.error('Error al eliminar el gasto del grupo:', error);
+      alert('No se pudo eliminar el gasto. Por favor, intenta nuevamente.');
     }
   };
+  
 
   const cancelDelete = () => {
     setShowModal(false);
@@ -505,12 +524,14 @@ const GroupFinanceDashboard = () => {
                 <td>{expense.Estado}</td>
                 <td>{new Date(expense.Fecha).toISOString().split('T')[0]}</td>
                 <td>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(expense.ID_Gasto)}
-                  >
-                    <i className="bi bi-trash"></i>
-                  </button>
+                  {(isAdmin || expense.ID_Usuario === currentUserId) && (
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(expense.ID_Gasto)}
+                    >
+                      <i className="bi bi-trash"></i>
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
