@@ -99,10 +99,11 @@ const GroupFinanceDashboard = () => {
     // Usamos setTimeout para simular un retraso
     setTimeout(() => {
       fetchData();  // Llama a la función después del retraso
-    }, 2000);  // 2000ms (2 segundos)
+    }, 1000);  // 2000ms (2 segundos)
     
   }, []); // Esto solo se ejecutará una vez cuando el componente se monte
 
+  
   const fetchGroupExpenses = useCallback(async (filters = {}) => {
     try {
       const token = localStorage.getItem('token');
@@ -477,7 +478,7 @@ const GroupFinanceDashboard = () => {
       {loading ? (
         <div className="overlay">
           <div className="loading-message">
-            Cargando info... <br />
+            Cargando informacion del grupo... <br />
             <img src={coinGif} alt="Cargando..." className="loading-image" />
           </div>
         </div>

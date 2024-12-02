@@ -14,6 +14,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/IncomeDashboard.css';
 import CustomToolbar from './CustomToolbar';
 import logo1 from '../assets/images/logo1.png';
+import coinGif from '../assets/images/coin.gif';
 
 Chart.register(ArcElement, Tooltip, Legend);
 
@@ -34,6 +35,8 @@ const IncomeDashboard = () => {
   const [searchTerm, setSearchTerm] = useState(''); // Término de búsqueda
   const [filteredIngresos, setFilteredIngresos] = useState([]); // Lista de ingresos filtrados
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
 
   // Función para transformar los ingresos en eventos de calendario
   const transformIngresosToEvents = (ingresos) => {
@@ -118,6 +121,12 @@ const IncomeDashboard = () => {
       console.error('Error al obtener los datos', error);
     }
   }, [navigate]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false); // Cambia el estado de loading después de 3 segundos
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     fetchIngresos(); // Llamada inicial sin filtros
@@ -334,186 +343,204 @@ const IncomeDashboard = () => {
   };
 
   return (
-    <div className="income-dashboard-container">
-      <h2 className="income-dashboard-title">Tus Ingresos</h2>
-      
+    <div className="expense-dashboard-container">
+      {/* Mostrar la animación de carga */}
+      {loading ? (
+        <div className="overlay">
+          <div className="loading-message">
+            Cargando información de tus ingresos... <br />
+            <img src={coinGif} alt="Cargando..." className="loading-image" />
+          </div>
+        </div>
+      ) : (
+        <div>
+          {/* Aquí va el contenido cuando la carga haya terminado */}
+          <h1>Bienvenido al Dashboard</h1>
 
-      <div className="income-chart-section">
-        <div className="chart-and-buttons">
-          <div className="income-chart">
-            {chartData && chartData.labels && chartData.labels.length > 0 ? (
-              <Pie data={chartData} width={300} height={300} />
-            ) : (
-              <p>No hay datos disponibles para mostrar.</p>
+          <div className="income-dashboard-container">
+            <h2 className="income-dashboard-title">Tus Ingresos</h2>
+
+            <div className="income-chart-section">
+              <div className="chart-and-buttons">
+                <div className="income-chart">
+                  {chartData && chartData.labels && chartData.labels.length > 0 ? (
+                    <Pie data={chartData} width={300} height={300} />
+                  ) : (
+                    <p>No hay datos disponibles para mostrar.</p>
+                  )}
+                </div>
+
+                <div className="button-group">
+                  <button
+                    className="btn btn-outline-secondary filter-button"
+                    onClick={() => setShowFilterModal(true)}
+                  >
+                    <i className="bi bi-filter"></i> Filtrar
+                  </button>
+
+                  <button
+                    className="btn btn-primary add-income-button"
+                    onClick={() => navigate('/dashboard/add-income')}
+                  >
+                    <i className="bi bi-plus"></i> Agregar Ingreso
+                  </button>
+                  <button
+                    className="btn btn-primary add-income-button"
+                    onClick={handleGeneratePDF}
+                  >
+                    <i className="bi bi-file-earmark-pdf"></i> Generar Reporte PDF
+                  </button>
+                </div>
+
+                <div className="income-calendar">
+                  <Calendar
+                    localizer={localizer}
+                    events={events}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={{ height: 500, width: 700 }}
+                    components={{
+                      toolbar: CustomToolbar,
+                    }}
+                    onSelectEvent={(event, e) => handleEventClick(event, e)}
+                    onSelectSlot={(slotInfo) => handleDateClick(slotInfo)}
+                    selectable
+                  />
+                </div>
+
+                {selectedIncome && popoverPosition && (
+                  <div
+                    className="event-popover"
+                    style={{
+                      position: 'absolute',
+                      top: `${popoverPosition.top}px`,
+                      left: `${popoverPosition.left}px`,
+                      backgroundColor: '#fff',
+                      border: '1px solid #ccc',
+                      padding: '10px',
+                      zIndex: 100,
+                    }}
+                  >
+                    <button
+                      className="btn btn-warning btn-sm"
+                      onClick={() => handleEdit(selectedIncome)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(selectedIncome)}
+                    >
+                      Eliminar
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={closePopover}>
+                      Cerrar
+                    </button>
+                  </div>
+                )}
+
+                {selectedDate && popoverPosition && (
+                  <div
+                    className="event-popover"
+                    style={{
+                      position: 'absolute',
+                      top: `${popoverPosition.top}px`,
+                      left: `${popoverPosition.left}px`,
+                      backgroundColor: '#fff',
+                      border: '1px solid #ccc',
+                      padding: '10px',
+                      zIndex: 100,
+                    }}
+                  >
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleAddIncomeClick}
+                    >
+                      Agregar Ingreso
+                    </button>
+                    <button className="btn btn-secondary btn-sm" onClick={closePopover}>
+                      Cerrar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="search-bar">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por descripción..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+            </div>
+
+            <div className="income-list-section">
+              <table className="income-table">
+                <thead>
+                  <tr>
+                    <th>Descripción</th>
+                    <th>Monto</th>
+                    <th>Periodicidad</th>
+                    <th>Es Fijo</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th>Periódico/Único</th>
+                    <th>Editar</th>
+                    <th>Eliminar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredIngresos.map((ingreso) => (
+                    <tr key={ingreso.ID_Ingreso}>
+                      <td>{ingreso.Descripcion}</td>
+                      <td>{ingreso.Monto}</td>
+                      <td>{ingreso.Periodicidad}</td>
+                      <td>{ingreso.EsFijo ? 'Sí' : 'No'}</td>
+                      <td>{ingreso.Tipo}</td>
+                      <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
+                      <td>{ingreso.EsPeriodico ? 'Periódico' : 'Único'}</td>
+                      <td>
+                        <button
+                          className="btn btn-warning btn-sm"
+                          onClick={() => handleEdit(ingreso.ID_Ingreso)}
+                        >
+                          <i className="bi bi-pencil-square"></i>
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(ingreso.ID_Ingreso)}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {showModal && (
+              <ConfirmationModal
+                message="¿Estás seguro de que deseas eliminar este ingreso?"
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+              />
+            )}
+
+            {showFilterModal && (
+              <FilterModal
+                initialFilters={currentFilters}
+                onApplyFilters={handleApplyFilters}
+                onClearFilters={handleClearFilters}
+                onClose={() => setShowFilterModal(false)}
+              />
             )}
           </div>
-
-          <div className="button-group">
-            <button
-              className="btn btn-outline-secondary filter-button"
-              onClick={() => setShowFilterModal(true)}
-            >
-              <i className="bi bi-filter"></i> Filtrar
-            </button>
-
-            <button
-              className="btn btn-primary add-income-button"
-              onClick={() => navigate('/dashboard/add-income')}
-            >
-              <i className="bi bi-plus"></i> Agregar Ingreso
-            </button>
-            <button
-              className="btn btn-primary add-income-button"
-              onClick={handleGeneratePDF}
-            >
-              <i className="bi bi-file-earmark-pdf"></i> Generar Reporte PDF
-            </button>
-          </div>
-
-          <div className="income-calendar">
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 500, width: 700 }}
-              components={{
-                toolbar: CustomToolbar,
-              }}
-              onSelectEvent={(event, e) => handleEventClick(event, e)}
-              onSelectSlot={(slotInfo) => handleDateClick(slotInfo)}
-              selectable
-            />
-          </div>
-
-          {selectedIncome && popoverPosition && (
-            <div
-              className="event-popover"
-              style={{
-                position: 'absolute',
-                top: `${popoverPosition.top}px`,
-                left: `${popoverPosition.left}px`,
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                padding: '10px',
-                zIndex: 100,
-              }}
-            >
-              <button
-                className="btn btn-warning btn-sm"
-                onClick={() => handleEdit(selectedIncome)}
-              >
-                Editar
-              </button>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => handleDelete(selectedIncome)}
-              >
-                Eliminar
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={closePopover}>
-                Cerrar
-              </button>
-            </div>
-          )}
-
-          {selectedDate && popoverPosition && (
-            <div
-              className="event-popover"
-              style={{
-                position: 'absolute',
-                top: `${popoverPosition.top}px`,
-                left: `${popoverPosition.left}px`,
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                padding: '10px',
-                zIndex: 100,
-              }}
-            >
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleAddIncomeClick}
-              >
-                Agregar Ingreso
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={closePopover}>
-                Cerrar
-              </button>
-            </div>
-          )}
         </div>
-      </div>
-      <div className="search-bar">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Buscar por descripción..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
-      </div>   
-      <div className="income-list-section">
-        <table className="income-table">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th>Monto</th>
-              <th>Periodicidad</th>
-              <th>Es Fijo</th>
-              <th>Tipo</th>
-              <th>Fecha</th>
-              <th>Periódico/Único</th>
-              <th>Editar</th>
-              <th>Eliminar</th>
-            </tr>
-          </thead>
-          <tbody>
-          {filteredIngresos.map((ingreso) => (
-              <tr key={ingreso.ID_Ingreso}>
-                <td>{ingreso.Descripcion}</td>
-                <td>{ingreso.Monto}</td>
-                <td>{ingreso.Periodicidad}</td>
-                <td>{ingreso.EsFijo ? 'Sí' : 'No'}</td>
-                <td>{ingreso.Tipo}</td>
-                <td>{new Date(ingreso.Fecha).toISOString().split('T')[0]}</td>
-                <td>{ingreso.EsPeriodico ? 'Periódico' : 'Único'}</td>
-                <td>
-                  <button
-                    className="btn btn-warning btn-sm"
-                    onClick={() => handleEdit(ingreso.ID_Ingreso)}
-                  >
-                    <i className="bi bi-pencil-square"></i>
-                  </button>
-                </td>
-                <td>
-                  <button
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(ingreso.ID_Ingreso)}
-                  >
-                    <i className="bi bi-trash"></i>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <ConfirmationModal
-          message="¿Estás seguro de que deseas eliminar este ingreso?"
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-        />
-      )}
-
-      {showFilterModal && (
-        <FilterModal
-          initialFilters={currentFilters}
-          onApplyFilters={handleApplyFilters}
-          onClearFilters={handleClearFilters}
-          onClose={() => setShowFilterModal(false)}
-        />
       )}
     </div>
   );

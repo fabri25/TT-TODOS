@@ -14,6 +14,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/ExpenseDashboard.css';
 import CustomToolbar from './CustomToolbar';
 import logo1 from '../assets/images/logo1.png';
+import coinGif from '../assets/images/coin.gif';
 
 Chart.register(ArcElement, Tooltip, Legend);
 
@@ -32,6 +33,8 @@ const ExpenseDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [searchTerm, setSearchTerm] = useState(''); // Término de búsqueda
   const [filteredExpenses, setFilteredExpenses] = useState([]); // Gastos filtrados por búsqueda
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
 
   const navigate = useNavigate();
 
@@ -244,9 +247,11 @@ const ExpenseDashboard = () => {
     doc.save('reporte_gastos.pdf');
   };
   
-  
-
-  
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false); // Cambia el estado de loading después de 3 segundos
+    }, 1000);
+  }, []);
   
 
   useEffect(() => {
@@ -345,186 +350,198 @@ const ExpenseDashboard = () => {
 
   return (
     <div className="expense-dashboard-container">
-      <h2 className="expense-dashboard-title">Tus Gastos</h2>
-
-      <div className="expense-chart-section">
-        <div className="chart-and-buttons">
-          <div className="expense-chart">
-            {chartData && chartData.labels && chartData.labels.length > 0 ? (
-              <Pie data={chartData} width={300} height={300} />
-            ) : (
-              <p>No hay datos disponibles para mostrar.</p>
-            )}
+      {/* Mostrar la animación de carga */}
+      {loading ? (
+        <div className="overlay">
+          <div className="loading-message">
+            Cargando informacion de tus gastos... <br />
+            <img src={coinGif} alt="Cargando..." className="loading-image" />
           </div>
-
-          <div className="button-group">
-            <button
-              className="btn btn-outline-secondary filter-button"
-              onClick={() => setShowFilterModal(true)}
-            >
-              <i className="bi bi-filter"></i> Filtrar
-            </button>
-
-            <button
-              className="btn btn-primary add-expense-button"
-              onClick={() => navigate('/dashboard/add-expense')}
-            >
-              <i className="bi bi-plus"></i> Agregar Gasto
-            </button>
-            <button
-              className="btn btn-primary add-income-button"
-              onClick={handleGeneratePDF}
-            >
-              <i className="bi bi-file-earmark-pdf"></i> Generar Reporte PDF
-            </button>
-          </div>
-
-          <div className="expense-calendar">
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 500, width: 700 }}
-              components={{
-                toolbar: CustomToolbar,
-              }}
-              onSelectEvent={(event, e) => handleEventClick(event, e)}
-              onSelectSlot={(slotInfo) => handleDateClick(slotInfo)}
-              selectable
-            />
-          </div>
-
-          {selectedExpense && popoverPosition && (
-            <div
-              className="event-popover"
-              style={{
-                position: 'absolute',
-                top: `${popoverPosition.top}px`,
-                left: `${popoverPosition.left}px`,
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                padding: '10px',
-                zIndex: 100,
-              }}
-            >
-              <button
-                className="btn btn-warning btn-sm"
-                onClick={() => handleEdit(selectedExpense)}
-              >
-                Editar
-              </button>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => handleDelete(selectedExpense)}
-              >
-                Eliminar
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={closePopover}>
-                Cerrar
-              </button>
-            </div>
-          )}
-
-          {selectedDate && popoverPosition && (
-            <div
-              className="event-popover"
-              style={{
-                position: 'absolute',
-                top: `${popoverPosition.top}px`,
-                left: `${popoverPosition.left}px`,
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                padding: '10px',
-                zIndex: 100,
-              }}
-            >
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleAddExpenseClick}
-              >
-                Agregar Gasto
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={closePopover}>
-                Cerrar
-              </button>
-            </div>
-          )}
         </div>
-      </div>
-      <div className="search-bar">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Buscar por descripción..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
-      </div>
-      <div className="expense-list-section">
-        <table className="expense-table">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th>Monto</th>
-              <th>Categoría</th>
-              <th>Subcategoría</th>
-              <th>Periodicidad</th>
-              <th>Es Único</th>
-              <th>Fecha</th>
-              <th>Periódico/Único</th>
-              <th>Editar</th>
-              <th>Eliminar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredExpenses.map((expense) => (
-              <tr key={expense.ID_Gasto}>
-                <td>{expense.Descripcion}</td>
-                <td>{expense.Monto}</td>
-                <td>{expense.Categoria}</td>
-                <td>{expense.Subcategoria || 'N/A'}</td>
-                <td>{expense.Periodicidad || 'N/A'}</td>
-                <td>{expense.Periodico === 'Único' ? 'Sí' : 'No'}</td>
-                <td>{new Date(expense.Fecha).toISOString().split('T')[0]}</td>
-                <td>{expense.Periodico}</td>
-                <td>
+      ) : (
+        <>
+          <h2 className="expense-dashboard-title">Tus Gastos</h2>
+  
+          <div className="expense-chart-section">
+            <div className="chart-and-buttons">
+              <div className="expense-chart">
+                {chartData && chartData.labels && chartData.labels.length > 0 ? (
+                  <Pie data={chartData} width={300} height={300} />
+                ) : (
+                  <p>No hay datos disponibles para mostrar.</p>
+                )}
+              </div>
+  
+              <div className="button-group">
+                <button
+                  className="btn btn-outline-secondary filter-button"
+                  onClick={() => setShowFilterModal(true)}
+                >
+                  <i className="bi bi-filter"></i> Filtrar
+                </button>
+  
+                <button
+                  className="btn btn-primary add-expense-button"
+                  onClick={() => navigate('/dashboard/add-expense')}
+                >
+                  <i className="bi bi-plus"></i> Agregar Gasto
+                </button>
+                <button
+                  className="btn btn-primary add-income-button"
+                  onClick={handleGeneratePDF}
+                >
+                  <i className="bi bi-file-earmark-pdf"></i> Generar Reporte PDF
+                </button>
+              </div>
+  
+              <div className="expense-calendar">
+                <Calendar
+                  localizer={localizer}
+                  events={events}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: 500, width: 700 }}
+                  components={{
+                    toolbar: CustomToolbar,
+                  }}
+                  onSelectEvent={(event, e) => handleEventClick(event, e)}
+                  onSelectSlot={(slotInfo) => handleDateClick(slotInfo)}
+                  selectable
+                />
+              </div>
+  
+              {selectedExpense && popoverPosition && (
+                <div
+                  className="event-popover"
+                  style={{
+                    position: 'absolute',
+                    top: `${popoverPosition.top}px`,
+                    left: `${popoverPosition.left}px`,
+                    backgroundColor: '#fff',
+                    border: '1px solid #ccc',
+                    padding: '10px',
+                    zIndex: 100,
+                  }}
+                >
                   <button
                     className="btn btn-warning btn-sm"
-                    onClick={() => handleEdit(expense.ID_Gasto)}
+                    onClick={() => handleEdit(selectedExpense)}
                   >
-                    <i className="bi bi-pencil-square"></i>
+                    Editar
                   </button>
-                </td>
-                <td>
                   <button
                     className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(expense.ID_Gasto)}
+                    onClick={() => handleDelete(selectedExpense)}
                   >
-                    <i className="bi bi-trash"></i>
+                    Eliminar
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <ConfirmationModal
-          message="¿Estás seguro de que deseas eliminar este gasto?"
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-        />
-      )}
-
-      {showFilterModal && (
-        <FilterModalGastos
-          initialFilters={currentFilters}
-          onApplyFilters={handleApplyFilters}
-          onClearFilters={handleClearFilters}
-          onClose={() => setShowFilterModal(false)}
-        />
+                  <button className="btn btn-secondary btn-sm" onClick={closePopover}>
+                    Cerrar
+                  </button>
+                </div>
+              )}
+  
+              {selectedDate && popoverPosition && (
+                <div
+                  className="event-popover"
+                  style={{
+                    position: 'absolute',
+                    top: `${popoverPosition.top}px`,
+                    left: `${popoverPosition.left}px`,
+                    backgroundColor: '#fff',
+                    border: '1px solid #ccc',
+                    padding: '10px',
+                    zIndex: 100,
+                  }}
+                >
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleAddExpenseClick}
+                  >
+                    Agregar Gasto
+                  </button>
+                  <button className="btn btn-secondary btn-sm" onClick={closePopover}>
+                    Cerrar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="search-bar">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar por descripción..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
+          </div>
+          <div className="expense-list-section">
+            <table className="expense-table">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th>Monto</th>
+                  <th>Categoría</th>
+                  <th>Subcategoría</th>
+                  <th>Periodicidad</th>
+                  <th>Es Único</th>
+                  <th>Fecha</th>
+                  <th>Periódico/Único</th>
+                  <th>Editar</th>
+                  <th>Eliminar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredExpenses.map((expense) => (
+                  <tr key={expense.ID_Gasto}>
+                    <td>{expense.Descripcion}</td>
+                    <td>{expense.Monto}</td>
+                    <td>{expense.Categoria}</td>
+                    <td>{expense.Subcategoria || 'N/A'}</td>
+                    <td>{expense.Periodicidad || 'N/A'}</td>
+                    <td>{expense.Periodico === 'Único' ? 'Sí' : 'No'}</td>
+                    <td>{new Date(expense.Fecha).toISOString().split('T')[0]}</td>
+                    <td>{expense.Periodico}</td>
+                    <td>
+                      <button
+                        className="btn btn-warning btn-sm"
+                        onClick={() => handleEdit(expense.ID_Gasto)}
+                      >
+                        <i className="bi bi-pencil-square"></i>
+                      </button>
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDelete(expense.ID_Gasto)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+  
+          {showModal && (
+            <ConfirmationModal
+              message="¿Estás seguro de que deseas eliminar este gasto?"
+              onConfirm={confirmDelete}
+              onCancel={cancelDelete}
+            />
+          )}
+  
+          {showFilterModal && (
+            <FilterModalGastos
+              initialFilters={currentFilters}
+              onApplyFilters={handleApplyFilters}
+              onClearFilters={handleClearFilters}
+              onClose={() => setShowFilterModal(false)}
+            />
+          )}
+        </>
       )}
     </div>
   );
