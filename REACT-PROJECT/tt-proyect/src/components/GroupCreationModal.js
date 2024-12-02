@@ -1,12 +1,11 @@
 import React from 'react';
 import '../styles/GroupCreationModal.css';
 
-const GroupCreationModal = ({ invitationLink, onClose }) => {
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(invitationLink)
-      .catch((error) => {
-        console.error("Error al copiar el enlace:", error);
-      });
+const GroupCreationModal = ({ codigoInvitacion, onClose }) => {
+  const handleCopyCode = () => {
+    navigator.clipboard
+      .writeText(codigoInvitacion)
+      .catch((error) => console.error('Error al copiar el código:', error));
   };
 
   return (
@@ -19,17 +18,17 @@ const GroupCreationModal = ({ invitationLink, onClose }) => {
           </button>
         </div>
         <div className="group-creation-modal-body">
-          <p>Comparte este enlace para invitar a otros a unirse:</p>
-          <div className="invitation-link-container">
+          <p>Comparte este código para invitar a otros a unirse:</p>
+          <div className="invitation-code-container">
             <input
               type="text"
-              value={invitationLink}
+              value={codigoInvitacion}
               readOnly
-              className="invitation-link-input"
+              className="invitation-code-input"
             />
             <button
               className="copy-button"
-              onClick={handleCopyLink}
+              onClick={handleCopyCode}
               title="Copiar"
             >
               <i className="bi bi-clipboard"></i>
