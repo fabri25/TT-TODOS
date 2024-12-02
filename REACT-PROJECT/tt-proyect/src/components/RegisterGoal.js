@@ -109,6 +109,16 @@ const RegisterGoal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+  
+    // Confirmación antes de crear la meta
+    const confirmacion = window.confirm(
+      `¿Estás seguro de que deseas crear la meta "${goal.nombre}" con un monto objetivo de ${goal.montoObjetivo}?`
+    );
+  
+    if (!confirmacion) {
+      return; // Si el usuario cancela, no se realiza ninguna acción
+    }
+  
     try {
       const token = localStorage.getItem('token');
       const data = {
@@ -117,16 +127,17 @@ const RegisterGoal = () => {
         fechaInicio: goal.fechaInicio,
         mesesParaMeta,
         fechaTermino,
-        ahorroMensual
+        ahorroMensual,
       };
       await axios.post('http://127.0.0.1:5000/api/metas', data, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
-      navigate('/dashboard/metas-financieras');
+      navigate('/dashboard/metas-financieras'); // Redirigir a la vista de metas
     } catch (error) {
       console.error('Error al crear la meta', error);
     }
   };
+  
 
   return (
     <div className="register-goal-container">
