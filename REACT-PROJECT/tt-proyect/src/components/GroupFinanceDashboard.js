@@ -30,6 +30,7 @@ const GroupFinanceDashboard = () => {
   const [metas, setMetas] = useState([]); // Estado para almacenar las metas grupales
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [popoverPosition, setPopoverPosition] = useState(null);
+  const [showLeaveModal, setShowLeaveModal] = useState(false); // Estado para mostrar u ocultar el modal de confirmación
   const [isAdmin, setIsAdmin] = useState(false); // Nuevo estado para identificar si el usuario es admin
   const [currentUserId, setCurrentUserId] = useState(null); // Nuevo estado para almacenar el ID del usuario actual
   const [selectedDate, setSelectedDate] = useState(null);
@@ -371,7 +372,7 @@ const GroupFinanceDashboard = () => {
       }
     } catch (error) {
       console.error('Error al eliminar el gasto del grupo:', error);
-      alert('No se pudo eliminar el gasto. Por favor, intenta nuevamente.');
+      //alert('No se pudo eliminar el gasto. Por favor, intenta nuevamente.');
     }
   };
   
@@ -380,6 +381,31 @@ const GroupFinanceDashboard = () => {
     setShowModal(false);
     setExpenseToDelete(null);
   };
+
+  const handleLeaveGroup = () => {
+    setShowLeaveModal(true); // Mostrar el modal
+  };
+  
+  const confirmLeaveGroup = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://127.0.0.1:5000/api/grupo/${grupoId}/salir`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      //alert('Has salido del grupo exitosamente.');
+      navigate('/dashboard/listado_grupos'); // Redirigir al listado de grupos
+    } catch (error) {
+      console.error('Error al salir del grupo:', error);
+      //alert('Hubo un error al intentar salir del grupo. Por favor, intenta nuevamente.');
+    } finally {
+      setShowLeaveModal(false); // Cerrar el modal
+    }
+  };
+  
+  const cancelLeaveGroup = () => {
+    setShowLeaveModal(false); // Cerrar el modal
+  };
+  
 
   const handleEdit = (idGasto) => {
     navigate(`/dashboard/grupo/${grupoId}/edit-expense/${idGasto}`);
@@ -632,6 +658,25 @@ const GroupFinanceDashboard = () => {
                 Ver Metas
               </button>
             </div>
+          </div>
+          <div className="group-exit-action">
+            {!isAdmin && (
+              <button
+                className="btn btn-danger"
+                onClick={handleLeaveGroup}
+                style={{ marginTop: '20px', padding: '10px 20px' }}
+              >
+                Salir del Grupo
+              </button>
+            )}
+
+            {showLeaveModal && (
+              <ConfirmationModal
+                message="¿Estás seguro de que deseas salir del grupo? Esta acción no se puede deshacer."
+                onConfirm={confirmLeaveGroup} // Confirmar salida
+                onCancel={cancelLeaveGroup} // Cancelar acción
+              />
+            )}
           </div>
         </>
       )}

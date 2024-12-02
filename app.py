@@ -2651,6 +2651,47 @@ def change_admin(grupo_id):
         if 'connection' in locals() and connection is not None:
             connection.close()
 
+@app.route('/api/grupo/<int:grupo_id>/salir', methods=['DELETE'], endpoint='salir_grupo')
+@jwt_required()
+def salir_grupo(grupo_id):
+    """
+    Endpoint para que un usuario salga de un grupo.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Verificar si el usuario es administrador
+        query_check_admin = "SELECT ID_Admin FROM Grupo WHERE ID_Grupo = %s"
+        cursor.execute(query_check_admin, (grupo_id,))
+        group = cursor.fetchone()
+
+        if not group:
+            return jsonify({"error": "El grupo no existe."}), 404
+
+        if group['ID_Admin'] == user_id:
+            return jsonify({"error": "El administrador no puede abandonar el grupo."}), 403
+
+        # Eliminar al usuario de la tabla Miembro_Grupo
+        query_delete_member = "DELETE FROM Miembro_Grupo WHERE ID_Usuario = %s AND ID_Grupo = %s"
+        cursor.execute(query_delete_member, (user_id, grupo_id))
+        connection.commit()
+
+        return jsonify({"message": "Has salido del grupo exitosamente."}), 200
+
+    except Exception as e:
+        connection.rollback()
+        return jsonify({"error": f"Error al salir del grupo: {str(e)}"}), 500
+
+    finally:
+        connection.close()
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
