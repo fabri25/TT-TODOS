@@ -12,10 +12,6 @@ import random
 import string
 from flask_jwt_extended import create_access_token, get_jwt_identity
 from flask import make_response
-#import bcrypt
-
-
-
 
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas y dominios
@@ -2561,3 +2557,4 @@ def change_password():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
