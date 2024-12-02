@@ -66,6 +66,7 @@
   padding: 5px 10px; /* Menos espacio interno */
   width: auto; /* Ajuste automático al contenido */
   min-width: 100px; /* Tamaño mínimo */
+}
 .overlay {
   position: fixed; /* Fija la superposición a toda la pantalla */
   top: 0;
