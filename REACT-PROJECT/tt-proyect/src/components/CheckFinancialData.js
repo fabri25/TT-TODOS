@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import coinGif from '../assets/images/coin.gif';
+import '../styles/DatosF.css';
 
 const CheckFinancialData = () => {
   const navigate = useNavigate();
@@ -37,10 +39,12 @@ const CheckFinancialData = () => {
   }, [navigate]);
 
   return (
-    <div className="check-financial-data-container">
-      <h2>Validando Datos Financieros...</h2>
-      {/* Puedes agregar un spinner de carga aquí si lo deseas */}
+    <div className="overlay">
+    <div className="loading-message">
+      Validando datos financieros... <br />
+      <img src={coinGif} alt="Cargando..." className="loading-image" />
     </div>
+  </div>
   );
 };
 

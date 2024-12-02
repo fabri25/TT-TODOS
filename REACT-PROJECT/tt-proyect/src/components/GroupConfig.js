@@ -5,6 +5,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/GroupConfig.css';
 import ConfirmationModal from './ConfirmationModal'; // Modal de confirmación
 import ChangeAdminModal from './ChangeAdminModal'; // Nuevo modal para cambiar administrador
+import coinGif from '../assets/images/coin.gif';
 
 const GroupConfig = () => {
   const [groupInfo, setGroupInfo] = useState(null);
@@ -135,7 +136,12 @@ const GroupConfig = () => {
   return (
     <div className="group-config-container">
       {loading ? (
-        <div className="loading-message">Cargando configuración del grupo...</div>
+        <div className="overlay">
+        <div className="loading-message">
+          Cargando configuracion del grupo... <br />
+          <img src={coinGif} alt="Cargando..." className="loading-image" />
+        </div>
+      </div>
       ) : (
         <>
           <h2>Configuración del Grupo: {groupInfo.Nombre_Grupo}</h2>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../styles/DetalleMeta.css';
+import coinGif from '../assets/images/coin.gif';
 import {
   LineChart,
   Line,
@@ -335,7 +336,12 @@ const DetalleMeta = () => {
           </ResponsiveContainer>
         </>
       ) : (
-        <p>Cargando los detalles de la meta...</p>
+        <div className="overlay">
+    <div className="loading-message">
+      Cargando meta... <br />
+      <img src={coinGif} alt="Cargando..." className="loading-image" />
+    </div>
+  </div>
       )}
     </div>
   );

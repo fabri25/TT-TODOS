@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/VisualizarMetas.css';
 import coinGif from '../assets/images/coin.gif';
+
 const VisualizarMetas = () => {
   const [metas, setMetas] = useState([]);
   const [loading, setLoading] = useState(true);

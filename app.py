@@ -16,7 +16,6 @@ from flask import make_response
 
 
 
-
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas y dominios
 

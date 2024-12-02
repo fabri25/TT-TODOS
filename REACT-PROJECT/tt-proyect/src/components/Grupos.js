@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/Grupos.css';
+import coinGif from '../assets/images/coin.gif';
 
 const Grupos = () => {
   const [grupos, setGrupos] = useState([]);
@@ -45,7 +46,12 @@ const Grupos = () => {
     <div className="grupos-container">
       <h2>Grupos a los que Pertenezco</h2>
       {loading ? (
-        <div className="loading-message">Cargando grupos...</div>
+        <div className="overlay">
+        <div className="loading-message">
+          Cargando grupos... <br />
+          <img src={coinGif} alt="Cargando..." className="loading-image" />
+        </div>
+      </div>
       ) : grupos.length === 0 ? (
         <p>No perteneces a ningún grupo.</p>
       ) : (
