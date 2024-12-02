@@ -29,6 +29,8 @@ import GroupConfig from './components/GroupConfig'; // Importa el componente de 
 import VisualizarMetasGrupales from './components/VisualizarMetasGrupales'; // Importa el componente de configuración del grupo
 import AddGroupMembers from './components/AddGroupMembers'; // Importa el componente de configuración del grupo
 import EditExpenseModal from './components/EditExpenseModal'; // Importa el componente de configuración del grupo
+import DetalleMetaGrupal from './components/DetalleMetaGrupal';
+
 
 
 function App() {
@@ -67,6 +69,7 @@ function App() {
             <Route path="/dashboard/grupo/:grupoId/metas-grupales" element={<VisualizarMetasGrupales />} />
             <Route path="/dashboard/grupo/:grupoId/agregar-miembro" element={<AddGroupMembers />} />
             <Route path="/dashboard/grupo/configurar/:grupoId" element={<GroupConfig />} /> {/* Ruta de configuración del grupo */}
+            <Route path="/dashboard/grupo/:grupoId/metas/:metaId" element={<DetalleMetaGrupal />}/>
 
             </Route>
         </Routes>
