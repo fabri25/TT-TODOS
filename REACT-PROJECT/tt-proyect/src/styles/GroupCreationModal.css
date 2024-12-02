@@ -1,39 +1,44 @@
+/* Fondo oscuro para el modal de creación de grupo */
 .group-creation-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro con transparencia */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1000; /* Asegura que el modal esté sobre otros elementos */
 }
 
+/* Modal de creación de grupo */
 .group-creation-modal {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.9); /* Fondo blanco con ligera transparencia */
   border-radius: 8px;
   width: 400px;
-  max-width: 90%;
+  max-width: 90%; /* Permite que el modal se ajuste al tamaño de la pantalla */
   padding: 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave */
 }
 
+/* Cabecera del modal */
 .group-creation-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #ddd; /* Separador inferior */
 }
 
+/* Título del modal */
 .modal-title {
   margin: 0;
   font-size: 18px;
   font-weight: bold;
 }
 
+/* Botón para cerrar el modal */
 .close-button {
   background: none;
   border: none;
@@ -41,16 +46,19 @@
   cursor: pointer;
 }
 
+/* Cuerpo del modal */
 .group-creation-modal-body {
   padding: 20px;
 }
 
+/* Contenedor del enlace de invitación */
 .invitation-link-container {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+/* Estilo para el input del enlace de invitación */
 .invitation-link-input {
   flex: 1;
   padding: 5px;
@@ -59,8 +67,9 @@
   border-radius: 4px;
 }
 
+/* Botón para copiar el enlace */
 .copy-button {
-  background-color: #007bff;
+  background-color: #007bff; /* Color de fondo azul */
   color: white;
   border: none;
   padding: 5px 10px;
@@ -71,19 +80,22 @@
   gap: 5px;
 }
 
+/* Efecto hover en el botón de copiar */
 .copy-button:hover {
-  background-color: #0056b3;
+  background-color: #0056b3; /* Azul más oscuro al pasar el cursor */
 }
 
+/* Pie de página del modal */
 .group-creation-modal-footer {
   display: flex;
   justify-content: flex-end;
   padding: 10px 20px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #ddd; /* Separador superior */
 }
 
+/* Estilo para el botón de éxito */
 .btn-success {
-  background-color: #28a745;
+  background-color: #28a745; /* Fondo verde */
   color: white;
   border: none;
   padding: 5px 10px;
@@ -92,6 +104,7 @@
   border-radius: 4px;
 }
 
+/* Efecto hover en el botón de éxito */
 .btn-success:hover {
-  background-color: #218838;
+  background-color: #218838; /* Verde más oscuro al pasar el cursor */
 }

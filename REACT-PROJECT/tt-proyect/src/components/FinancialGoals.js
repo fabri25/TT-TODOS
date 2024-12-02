@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/VisualizarMetas.css';
-
+import coinGif from '../assets/images/coin.gif';
 const VisualizarMetas = () => {
   const [metas, setMetas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,8 +78,13 @@ const VisualizarMetas = () => {
     <div className="metas-container">
       <h2>Mis Metas Financieras</h2>
       {loading ? (
-        <div className="loading-message">Cargando metas...</div>
-      ) : metas.length === 0 ? (
+  <div className="overlay">
+    <div className="loading-message">
+      Cargando metas financieras... <br />
+      <img src={coinGif} alt="Cargando..." className="loading-image" />
+    </div>
+  </div>
+)  : metas.length === 0 ? (
         <p>No tienes metas registradas.</p>
       ) : (
         <div className="metas-table-wrapper">

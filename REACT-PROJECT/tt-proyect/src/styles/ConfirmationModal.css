@@ -1,4 +1,4 @@
-/* ConfirmationModal.css */
+/* Estilo del fondo (backdrop) de la modal de confirmación */
 .confirmation-modal-backdrop {
     position: fixed;
     top: 0;
@@ -12,6 +12,7 @@
     z-index: 1000;
 }
 
+/* Estilo de la modal de confirmación */
 .confirmation-modal {
     background-color: white;
     border-radius: 8px;
@@ -21,6 +22,7 @@
     text-align: center;
 }
 
+/* Estilo de los botones de la modal de confirmación */
 .confirmation-modal-buttons {
     display: flex;
     justify-content: space-around;
@@ -45,6 +47,7 @@
     cursor: pointer;
 }
 
+/* Efecto de hover para los botones */
 .btn-confirm:hover, .btn-cancel:hover {
     opacity: 0.8;
 }

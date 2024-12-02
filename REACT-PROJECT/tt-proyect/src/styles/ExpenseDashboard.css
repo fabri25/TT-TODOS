@@ -14,11 +14,14 @@
 .expense-dashboard-title {
   font-size: 2rem;
   margin-bottom: 20px;
+  color: var(--color-gris-oscuro, #2d3e50);
+  font-weight: 600;
 }
 
 .expense-dashboard-subtitle {
   font-size: 1.5rem;
   margin-bottom: 10px;
+  color: var(--color-gris, #666);
 }
 
 .expense-chart {
@@ -36,6 +39,9 @@
   padding: 5px 10px;
   margin-bottom: 15px;
   cursor: pointer;
+  background-color: transparent;
+  border: 1px solid var(--color-gris-claro, #ddd);
+  border-radius: 4px;
 }
 
 .button-group {
@@ -46,6 +52,15 @@
 
 .add-expense-button {
   margin-top: 10px;
+  background-color: var(--color-principal, #007bff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-expense-button:hover {
+  background-color: var(--color-principal-dark, #0056b3);
 }
 
 .expense-list-section {
@@ -65,7 +80,9 @@
 }
 
 .expense-table th {
-  background-color: #f2f2f2;
+  background-color: var(--color-fondo-claro, #f2f2f2);
+  color: var(--color-blanco, #fff);
+  font-weight: bold;
 }
 
 .chart-and-buttons {
@@ -79,9 +96,10 @@
   flex: 1;
   margin-left: 200px;
 }
+
 /* Cambia el color de los eventos de gasto a rojo en el calendario */
 .expense-calendar .rbc-event {
-  background-color: #ff4b4b; /* Rojo */
+  background-color: var(--color-rojo, #ff4b4b);
   border: none;
   color: white;
   font-weight: bold;
@@ -89,17 +107,17 @@
 
 /* Botón rojo en días con gastos */
 .rbc-day-bg.rbc-selected {
-  background-color: #ff4b4b;
+  background-color: var(--color-rojo, #ff4b4b);
   color: white;
 }
 
 .rbc-day-bg.rbc-selected:hover {
-  background-color: #ff6b6b;
+  background-color: var(--color-rojo-claro, #ff6b6b);
 }
 
 /* Estilo para los días actuales */
 .rbc-day-bg.rbc-today {
-  border: 2px solid #ff4b4b;
+  border: 2px solid var(--color-rojo, #ff4b4b);
   background-color: #fff;
 }
 

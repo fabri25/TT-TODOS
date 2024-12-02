@@ -1,24 +1,26 @@
+/* Estilo del botón de inicio de sesión */
 .login-button {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 2px solid #4CAF50; /* Añade un borde visible */
-    border-radius: 5px;
-    background-color: rgba(128, 128, 128, 0.8); /* Fondo gris transparente */
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  
-  .login-button.link {
-    background-color: transparent;
-    color: #007BFF;
-    text-decoration: underline;
-    cursor: pointer;
-  }
-  
-  .login-button:hover {
-    background-color: rgba(128, 128, 128, 1); /* Oscurecer ligeramente al hacer hover */
-    border-color: #45a049; /* Cambia el color del borde al hacer hover */
-  }
-  
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 2px solid #4CAF50; /* Añade un borde visible */
+  border-radius: 5px;
+  background-color: rgba(128, 128, 128, 0.8); /* Fondo gris transparente */
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Estilo del enlace de inicio de sesión */
+.login-button.link {
+  background-color: transparent;
+  color: #007BFF;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Estilo al pasar el ratón por encima del botón */
+.login-button:hover {
+  background-color: rgba(128, 128, 128, 1); /* Oscurecer ligeramente al hacer hover */
+  border-color: #45a049; /* Cambia el color del borde al hacer hover */
+}

@@ -1,59 +1,68 @@
+/* Contenedor principal para el gráfico de ingresos */
 .income-chart-container {
-    margin-left: 20px; /* Ajustar según sea necesario */
-  }
-  
-  .income-chart-title {
-    text-align: left;
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-  }
-  
-  .income-chart-divider {
-    border: 0;
-    height: 1px;
-    background: #ccc;
-    margin-bottom: 20px;
-  }
-  
-  .income-chart-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Centra el contenido horizontalmente */
-    width: 300px; /* Asegura que el ancho del contenedor esté limitado */
-  }
-  
-  .income-chart-subtitle {
-    text-align: center;
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-  }
-  
-  .income-chart {
-    text-align: center;
-    width: 100%; /* El ancho de la gráfica toma todo el contenedor */
-  }
-  
-  .income-chart canvas {
-    width: 100% !important;
-    height: auto !important;
-  }
-  .filter-button {
-    font-size: 12px; /* Tamaño de fuente más pequeño */
-    padding: 5px 10px; /* Ajusta el relleno para reducir el tamaño */
-    margin-top: 10px; /* Espacio adicional si es necesario */
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-  }
-  
-  .filter-button i {
-    margin-right: 5px; /* Espacio entre el ícono y el texto */
-  }
-  
-  .filter-button-container {
-    display: flex;
-    justify-content: flex-start; /* Mantiene el botón alineado a la izquierda */
-    margin-bottom: 15px;
-  }
-  
-  
+  margin-left: 20px; /* Ajuste de margen según necesidad */
+}
+
+/* Título del gráfico de ingresos */
+.income-chart-title {
+  text-align: left;
+  font-size: 1.5rem; /* Tamaño de fuente grande */
+  margin-bottom: 10px;
+}
+
+/* Línea divisoria del gráfico de ingresos */
+.income-chart-divider {
+  border: 0;
+  height: 1px;
+  background: #ccc; /* Color gris claro */
+  margin-bottom: 20px;
+}
+
+/* Contenido del gráfico de ingresos */
+.income-chart-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centra el contenido horizontalmente */
+  width: 300px; /* Limita el ancho del contenedor */
+}
+
+/* Subtítulo del gráfico de ingresos */
+.income-chart-subtitle {
+  text-align: center;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+/* Estilo para el gráfico de ingresos */
+.income-chart {
+  text-align: center;
+  width: 100%; /* El gráfico ocupa todo el ancho del contenedor */
+}
+
+/* Estilo para el lienzo del gráfico */
+.income-chart canvas {
+  width: 100% !important; /* Asegura que el lienzo ocupe todo el ancho */
+  height: auto !important; /* Mantiene la altura proporcional */
+}
+
+/* Estilo del botón de filtro */
+.filter-button {
+  font-size: 12px; /* Tamaño de fuente pequeño */
+  padding: 5px 10px; /* Ajuste de relleno */
+  margin-top: 10px; /* Espacio adicional superior */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Espacio entre el ícono y el texto en el botón de filtro */
+.filter-button i {
+  margin-right: 5px;
+}
+
+/* Contenedor para el botón de filtro */
+.filter-button-container {
+  display: flex;
+  justify-content: flex-start; /* Alineación del botón a la izquierda */
+  margin-bottom: 15px;
+}
