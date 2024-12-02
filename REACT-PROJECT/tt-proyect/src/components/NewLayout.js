@@ -73,7 +73,7 @@ const NewLayout = () => {
   };
 
   const handleSettings = () => {
-    navigate('/dashboard/configuracion');
+    navigate('/dashboard/configuracionCuennta');
   };
 
   const openLogoutModal = () => {

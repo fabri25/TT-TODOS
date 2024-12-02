@@ -12,6 +12,8 @@ import random
 import string
 from flask_jwt_extended import create_access_token, get_jwt_identity
 from flask import make_response
+import bcrypt
+
 
 
 
@@ -2334,6 +2336,225 @@ def reclamar_gasto(grupo_id, gasto_id):
 
     finally:
         cursor.close()
+        connection.close()
+
+@app.route('/api/user/info', methods=['GET'], endpoint='get_user_info')
+@jwt_refresh_if_active
+def get_user_info():
+    """
+    Endpoint para obtener toda la información del usuario autenticado.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        # Consulta para obtener la información del usuario
+        query = """
+        SELECT 
+            ID_Usuario,
+            Nombre,
+            Apellido_P,
+            Apellido_M,
+            Email,
+            Fecha_Cumple,
+            Contacto,
+            Estado_ID,
+            email_verificado
+        FROM Usuario
+        WHERE ID_Usuario = %s
+        """
+        cursor.execute(query, (user_id,))
+        user_info = cursor.fetchone()
+
+        if not user_info:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+
+        # Cerrar la conexión y devolver los datos
+        return jsonify(user_info), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al obtener la información del usuario: {str(e)}"}), 500
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.route('/api/user/edit', methods=['PUT'], endpoint='editar_usuario')
+@jwt_refresh_if_active
+def editar_usuario():
+    """
+    Endpoint para editar la información de un usuario autenticado.
+    """
+    user_id = get_jwt_identity()
+    data = request.json
+
+    # Validar datos
+    nombre = data.get('Nombre')
+    apellido_p = data.get('Apellido_P')
+    apellido_m = data.get('Apellido_M', '')
+    fecha_cumple = data.get('Fecha_Cumple')
+    contacto = data.get('Contacto')
+
+    if not all([nombre, apellido_p, fecha_cumple]):
+        return jsonify({"error": "Faltan datos obligatorios"}), 400
+
+    try:
+        # Conexión a la base de datos
+        connection = create_connection()
+        if connection is None:
+            return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+        cursor = connection.cursor()
+
+        # Actualizar la información del usuario
+        query = """
+        UPDATE Usuario
+        SET Nombre = %s, Apellido_P = %s, Apellido_M = %s, Fecha_Cumple = %s, Contacto = %s
+        WHERE ID_Usuario = %s
+        """
+        cursor.execute(query, (nombre, apellido_p, apellido_m, fecha_cumple, contacto, user_id))
+        connection.commit()
+
+        return jsonify({"message": "Información actualizada con éxito"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error al actualizar la información: {str(e)}"}), 500
+
+    finally:
+        if 'connection' in locals() and connection is not None:
+            connection.close()
+
+@app.route('/api/user/deactivate', methods=['PUT'], endpoint='deactivate_user')
+@jwt_refresh_if_active
+def deactivate_user():
+    """
+    Endpoint para desactivar la cuenta del usuario autenticado (cambiar Estado_ID a 0).
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario desde el token JWT
+
+    # Conexión a la base de datos
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor()
+
+        # Actualizar el campo Estado_ID a 0
+        query = "UPDATE Usuario SET Estado_ID = 0 WHERE ID_Usuario = %s"
+        cursor.execute(query, (user_id,))
+
+        # Confirmar los cambios
+        connection.commit()
+
+        # Cerrar la conexión y devolver la respuesta
+        return jsonify({"message": "Cuenta desactivada exitosamente."}), 200
+
+    except Exception as e:
+        # Si ocurre un error, realizar rollback y retornar el error
+        connection.rollback()
+        return jsonify({"error": f"Error al desactivar la cuenta: {str(e)}"}), 500
+
+    finally:
+        if 'connection' in locals() and connection is not None:
+            connection.close()
+
+
+@app.route('/api/user/change_email', methods=['PUT'], endpoint='change_email')
+@jwt_refresh_if_active
+def change_email():
+    """
+    Endpoint para cambiar el correo electrónico del usuario autenticado.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+    data = request.json
+    new_email = data.get('new_email')
+
+    if not new_email:
+        return jsonify({"error": "El nuevo correo electrónico es obligatorio."}), 400
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Verificar si el correo ya existe en la base de datos
+        query_check = "SELECT ID_Usuario FROM Usuario WHERE Email = %s"
+        cursor.execute(query_check, (new_email,))
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            return jsonify({"error": "El correo electrónico ya está en uso."}), 409
+
+        # Actualizar el correo en la tabla Usuario
+        query_update = "UPDATE Usuario SET Email = %s, email_verificado = 0 WHERE ID_Usuario = %s"
+        cursor.execute(query_update, (new_email, user_id))
+        connection.commit()
+
+        # Generar un nuevo token de verificación de correo
+        token = s.dumps(new_email, salt='email-confirm')
+        confirm_url = url_for('confirm_email', token=token, _external=True)
+
+        # Enviar correo de verificación
+        html_body = f"""
+        <p>Por favor, verifica tu nuevo correo electrónico haciendo clic <a href="{confirm_url}">AQUI</a>.</p>
+        """
+        msg = Message('Verifica tu nuevo correo', sender='fianzastt@gmail.com', recipients=[new_email])
+        msg.html = html_body
+        mail.send(msg)
+
+        return jsonify({"message": "Correo actualizado. Por favor, verifica tu nuevo correo."}), 200
+
+    except Exception as e:
+        connection.rollback()
+        return jsonify({"error": f"Error al actualizar el correo: {str(e)}"}), 500
+
+    finally:
+        connection.close()
+
+
+@app.route('/api/user/change_password', methods=['PUT'], endpoint='change_password')
+@jwt_refresh_if_active
+def change_password():
+    """
+    Endpoint para cambiar la contraseña del usuario autenticado.
+    """
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+    data = request.json
+    print(f"Datos recibidos: {data}")  # Esto imprimirá los datos recibidos
+    new_password = data.get('new_password')
+
+    if not new_password:
+        return jsonify({"error": "La nueva contraseña es obligatoria."}), 400
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor()
+
+        # Actualizar la contraseña en la tabla Usuario
+        query_update = "UPDATE Usuario SET Contraseña = %s WHERE ID_Usuario = %s"
+        cursor.execute(query_update, (new_password, user_id))
+        connection.commit()
+
+        return jsonify({"message": "Contraseña actualizada exitosamente. Por favor, inicia sesión nuevamente."}), 200
+
+    except Exception as e:
+        connection.rollback()
+        return jsonify({"error": f"Error al actualizar la contraseña: {str(e)}"}), 500
+
+    finally:
         connection.close()
 
 
