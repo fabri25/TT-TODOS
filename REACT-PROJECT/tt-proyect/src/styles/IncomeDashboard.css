@@ -33,11 +33,12 @@
   height: 300px !important; /* Altura exacta de la gráfica */
 }
 
-.filter-button {
-  font-size: 12px;
-  padding: 5px 10px;
-  margin-bottom: 15px;
-  cursor: pointer;
+.filter-button,
+.add-income-button {
+  width: 150px; /* Ajusta el ancho deseado (ejemplo: 150px) */
+  padding: 10px; /* Aumenta el espacio interno para un mejor diseño */
+  font-size: 14px; /* Ajusta el tamaño de la fuente para mantener equilibrio */
+  text-align: center; /* Asegura que el texto esté centrado */
 }
 
 .filter-button i {
@@ -78,8 +79,8 @@
 
 .button-group {
   display: flex;
-  flex-direction: column; /* Acomoda los botones verticalmente */
-  gap: 10px; /* Añade espacio entre los botones */
+  flex-direction: column; /* Botones en columna */
+  gap: 15px; /* Más espacio entre los botones */
 }
 
 .add-income-button {
