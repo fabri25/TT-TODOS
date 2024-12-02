@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Asegúrate de importar esto
 import axios from 'axios';
 import '../styles/CreateGroup.css';
 import GroupCreationModal from './GroupCreationModal';
@@ -9,6 +10,7 @@ const CreateGroup = () => {
   const [members, setMembers] = useState(['']);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [invitationLink, setInvitationLink] = useState('');
+  const navigate = useNavigate();
 
   const handleAddMember = () => {
     setMembers([...members, '']);
@@ -64,6 +66,7 @@ const CreateGroup = () => {
     setGroupName('');
     setDescription('');
     setMembers(['']);
+    navigate('/dashboard/listado_grupos');
   };
 
   return (
