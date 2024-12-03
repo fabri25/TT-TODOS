@@ -393,19 +393,23 @@ const GroupFinanceDashboard = () => {
   
   const confirmLeaveGroup = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://127.0.0.1:5000/api/grupo/${grupoId}/salir`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      //alert('Has salido del grupo exitosamente.');
-      navigate('/dashboard/listado_grupos'); // Redirigir al listado de grupos
+        const token = localStorage.getItem('token');
+        const response = await axios.delete(`http://127.0.0.1:5000/api/grupo/${grupoId}/salir`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.status === 200) {
+            alert(response.data.message); // Mostrar mensaje de éxito
+            navigate('/dashboard/listado_grupos'); // Redirigir al listado de grupos
+        }
     } catch (error) {
-      console.error('Error al salir del grupo:', error);
-      //alert('Hubo un error al intentar salir del grupo. Por favor, intenta nuevamente.');
+        console.error('Error al salir del grupo:', error);
+        //alert(error.response?.data?.error || 'Hubo un error al intentar salir del grupo.');
     } finally {
-      setShowLeaveModal(false); // Cerrar el modal
+        setShowLeaveModal(false); // Cerrar el modal
     }
-  };
+};
+
   
   const cancelLeaveGroup = () => {
     setShowLeaveModal(false); // Cerrar el modal
