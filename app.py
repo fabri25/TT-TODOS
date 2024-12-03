@@ -16,6 +16,8 @@ from flask import make_response
 app = Flask(__name__)
 CORS(app)  # Habilitar CORS para todas las rutas y dominios
 
+verification_codes = {}  # Diccionario para almacenar los códigos
+
 # Configuración de claves secretas para Flask y JWT
 app.config['SECRET_KEY'] = secrets.token_urlsafe(16)  # Clave para Flask (session)
 app.config['JWT_SECRET_KEY'] = secrets.token_urlsafe(32)  # Clave para JWT
@@ -2834,6 +2836,119 @@ def aceptar_solicitud():
         cursor.close()
         connection.close()
 
+
+@app.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.json
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"error": "El correo es obligatorio"}), 400
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Verificar si el correo existe
+        query = "SELECT ID_Usuario FROM Usuario WHERE Email = %s"
+        cursor.execute(query, (email,))
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({"error": "El correo no está registrado"}), 404
+
+        # Generar un código de verificación
+        verification_code = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        expiration_time = datetime.now() + timedelta(minutes=15)
+
+        # Guardar el código en memoria
+        verification_codes[email] = {
+            "code": verification_code,
+            "expires_at": expiration_time
+        }
+
+        # Enviar el código al correo
+        msg = Message(
+            subject="Código de recuperación de contraseña",
+            sender="fianzastt@gmail.com",
+            recipients=[email],
+            body=f"Tu código de verificación es: {verification_code}. Este código expira en 15 minutos."
+        )
+        mail.send(msg)
+
+        return jsonify({"message": "Código de verificación enviado"}), 200
+
+    except Exception as e:
+        print(f"Error interno del servidor: {str(e)}")
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route('/api/verify-code', methods=['POST'])
+def verify_code():
+    data = request.json
+    email = data.get('email')
+    code = data.get('code')
+
+    if not email or not code:
+        return jsonify({"error": "Correo y código son obligatorios"}), 400
+
+    # Verificar si hay un código para este correo
+    if email not in verification_codes:
+        return jsonify({"error": "No se encontró un código para este correo"}), 404
+
+    stored_code = verification_codes[email]
+
+    # Verificar si el código ha expirado
+    if datetime.now() > stored_code["expires_at"]:
+        del verification_codes[email]  # Eliminar el código expirado
+        return jsonify({"error": "El código ha expirado"}), 400
+
+    # Verificar si el código coincide
+    if code != stored_code["code"]:
+        return jsonify({"error": "El código es incorrecto"}), 400
+
+    # Eliminar el código después de la verificación
+    del verification_codes[email]
+
+    return jsonify({"message": "Código verificado"}), 200
+
+
+
+@app.route('/api/update-password', methods=['POST'])
+def update_password():
+    data = request.json
+    email = data.get('email')
+    new_password = data.get('new_password')
+
+    if not email or not new_password:
+        return jsonify({"error": "Correo y nueva contraseña son obligatorios"}), 400
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor()
+
+        # Actualizar la contraseña
+        query = "UPDATE Usuario SET Contraseña = %s WHERE Email = %s"
+        cursor.execute(query, (new_password, email))
+        connection.commit()
+
+        return jsonify({"message": "Contraseña actualizada"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
+
+    finally:
+        connection.close()
 
 
 
