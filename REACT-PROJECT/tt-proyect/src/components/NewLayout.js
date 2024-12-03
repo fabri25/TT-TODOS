@@ -193,6 +193,11 @@ const NewLayout = () => {
                 </li>
               </ul>
             </li>
+            <li className={`menu-item ${activeMenu === 'cursos' ? 'active' : ''}`}>
+              <Link to="/dashboard/cursos" onClick={() => setActiveMenu('cursos')}>
+                <i className="bi bi-journal-bookmark"></i> Cursos
+              </Link>
+            </li>
           </ul>
         </div>
       </aside>

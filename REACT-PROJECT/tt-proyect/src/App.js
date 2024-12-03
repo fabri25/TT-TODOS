@@ -34,6 +34,7 @@ import AccountSettings from './components/AccountSettings';
 import EditAccount from './components/EditAccount';
 import ChangeEmail from './components/ChangeEmail';
 import ChangePassword from './components/ChangePassword';
+import CoursesCatalog from './components/CoursesCatalog';
 
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
             <Route path="grupo/crear" element={<CreateGroup />} /> {/* Nueva ruta */}
             <Route path="listado_grupos" element={<Grupos />} /> {/* Ruta de Grupos */}
             <Route path="/dashboard/configuracionCuennta" element={<AccountSettings />} />
+            <Route path="/dashboard/cursos" element={<CoursesCatalog />} />
             <Route path="/dashboard/configuracion/editar" element={<EditAccount />} />
             <Route path="/dashboard/configuracion/cambiar-correo" element={<ChangeEmail />} />
             <Route path="/dashboard/configuracion/cambiar-contrasena" element={<ChangePassword />} />
