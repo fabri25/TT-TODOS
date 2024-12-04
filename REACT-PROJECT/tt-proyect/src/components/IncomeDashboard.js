@@ -354,8 +354,6 @@ const IncomeDashboard = () => {
         </div>
       ) : (
         <div>
-          {/* Aquí va el contenido cuando la carga haya terminado */}
-          <h1>Bienvenido al Dashboard</h1>
 
           <div className="income-dashboard-container">
             <h2 className="income-dashboard-title">Tus Ingresos</h2>

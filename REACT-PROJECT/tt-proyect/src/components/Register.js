@@ -76,44 +76,30 @@ const Register = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="group-material-login">
                         <input type="email" className="material-login-control" required maxLength="70" value={email} onChange={(e) => setEmail(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
                         <label><i className="bi bi-envelope"></i> &nbsp; Correo</label>
                     </div>
                     <div className="group-material-login">
                         <input type="password" className="material-login-control" required maxLength="70" value={password} onChange={(e) => setPassword(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
                         <label><i className="bi bi-lock"></i> &nbsp; Contraseña</label>
                     </div>
                     <div className="group-material-login">
                         <input type="text" className="material-login-control" required maxLength="50" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
                         <label><i className="bi bi-person"></i> &nbsp; Nombres</label>
                     </div>
                     <div className="group-material-login">
                         <input type="text" className="material-login-control" required maxLength="50" value={apellidoP} onChange={(e) => setApellidoP(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
                         <label><i className="bi bi-person"></i> &nbsp; Apellido Paterno</label>
                     </div>
                     <div className="group-material-login">
                         <input type="text" className="material-login-control" required maxLength="50" value={apellidoM} onChange={(e) => setApellidoM(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
                         <label><i className="bi bi-person"></i> &nbsp; Apellido Materno</label>
                     </div>
                     <div className="group-material-login">
                         <input type="date" className="material-login-control" required value={fechaCumple} onChange={(e) => setFechaCumple(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
-                        <label><i className="bi bi-calendar"></i> &nbsp; Fecha de nacimiento</label>
+                        <label className="static-label"><i className="bi bi-calendar"></i> &nbsp; Fecha de nacimiento</label>
                     </div>
                     <div className="group-material-login">
                         <input type="text" className="material-login-control" maxLength="100" value={contacto} onChange={(e) => setContacto(e.target.value)} />
-                        <span className="highlight-login"></span>
-                        <span className="bar-login"></span>
                         <label><i className="bi bi-phone"></i> &nbsp; Contacto (opcional)</label>
                     </div>
                     {error && <p className="text-danger">{error}</p>}

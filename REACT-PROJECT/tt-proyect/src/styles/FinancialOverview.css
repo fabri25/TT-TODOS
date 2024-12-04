@@ -1,10 +1,4 @@
 /* Contenedor principal */
-.financial-overview-container {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
 
 /* Sección que contiene la gráfica de barras y el calendario */
 .chart-and-calendar {

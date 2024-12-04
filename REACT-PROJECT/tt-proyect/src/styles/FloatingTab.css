@@ -132,3 +132,49 @@ body.modal-open {
 .btn-remove:hover {
   background-color: #c0392b; /* Color más oscuro al pasar el cursor */
 }
+/* Botones en disposición horizontal */
+.button-group-horizontal {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Botón de confirmar (verde) */
+.btn-success.custom-btn {
+  background-color: #28a745 !important; /* Fuerza el color verde */
+  border: none;
+  color: white !important;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.btn-success.custom-btn:hover {
+  background-color: #218838 !important; /* Fuerza un verde más oscuro */
+}
+
+/* Botón de editar (amarillo) */
+.btn-warning.custom-btn {
+  background-color: #ffc107 !important; /* Fuerza el color amarillo */
+  border: none;
+  color: black !important;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.btn-warning.custom-btn:hover {
+  background-color: #e0a800 !important; /* Fuerza un amarillo más oscuro */
+}
+
+/* Botón de rechazar (rojo) */
+.btn-danger.custom-btn {
+  background-color: #dc3545 !important; /* Fuerza el color rojo */
+  border: none;
+  color: white !important;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.btn-danger.custom-btn:hover {
+  background-color: #c82333 !important; /* Fuerza un rojo más oscuro */
+}

@@ -4,20 +4,26 @@ import '../styles/NewLayout.css';
 import logo1 from '../assets/images/logo1.png';
 import FloatingTab from './FloatingTab';
 import FloatingTabIncome from './FloatingTabIncome';
+import FloatingTabFixedIncome from './FloatingTabFixedIncome'; // Importar el nuevo componente
 import ConfirmationModal from './ConfirmationModal';
-import JoinGroupModal from './JoinGroupModal'; // Importar el nuevo modal
+import JoinGroupModal from './JoinGroupModal';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 const NewLayout = () => {
   const [showFloatingTab, setShowFloatingTab] = useState(false);
   const [showFloatingTabIncome, setShowFloatingTabIncome] = useState(false);
+  const [showFloatingTabFixedIncome, setShowFloatingTabFixedIncome] = useState(false); // Nuevo estado para ingresos fijos
   const [activeMenu, setActiveMenu] = useState(null);
   const [descripcionIngreso, setDescripcionIngreso] = useState('');
+  const [descripcionIngresoFijo, setDescripcionIngresoFijo] = useState(''); // Descripción para ingresos fijos
   const [fechaUltimoIngreso, setFechaUltimoIngreso] = useState('');
+  const [fechaTerminoPeriodoFijo, setFechaTerminoPeriodoFijo] = useState(''); // Nuevo estado
+  const [fechaUltimoIngresoFijo, setFechaUltimoIngresoFijo] = useState(''); // Fecha para ingresos fijos
+  const [fechaTerminoPeriodoNoFijo, setFechaTerminoPeriodoNoFijo] = useState(''); // Fecha de término para no fijos
   const [perteneceAGrupo, setPerteneceAGrupo] = useState(false);
   const [misGrupos, setMisGrupos] = useState([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showJoinGroupModal, setShowJoinGroupModal] = useState(false); // Estado para mostrar el modal de unirse a un grupo
+  const [showJoinGroupModal, setShowJoinGroupModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,6 +44,7 @@ const NewLayout = () => {
 
     const hasIncome = localStorage.getItem('hasIncome') === 'true';
     const showIncomeTab = localStorage.getItem('showFloatingTabIncome') === 'true';
+    const showFixedIncomeTab = localStorage.getItem('showFloatingTabFixedIncome') === 'true'; // Nueva bandera para ingresos fijos
     const perteneceAGrupoLocal = localStorage.getItem('pertenece_a_grupo') === 'true';
 
     setPerteneceAGrupo(perteneceAGrupoLocal);
@@ -48,9 +55,15 @@ const NewLayout = () => {
     if (!hasIncome) {
       setShowFloatingTab(true);
     } else if (showIncomeTab) {
-      setDescripcionIngreso(localStorage.getItem('descripcionIngreso') || '');
-      setFechaUltimoIngreso(localStorage.getItem('fechaUltimoIngreso') || '');
+      setDescripcionIngreso(localStorage.getItem('descripcionIngresoNoFijo') || '');
+      setFechaUltimoIngreso(localStorage.getItem('fechaUltimoIngresoNoFijo') || '');
+      setFechaTerminoPeriodoNoFijo(localStorage.getItem('fechaTerminoPeriodoNoFijo') || '');
       setShowFloatingTabIncome(true);
+    } else if (showFixedIncomeTab) {
+      setDescripcionIngresoFijo(localStorage.getItem('descripcionIngresoFijo') || ''); // Cargar descripción de ingresos fijos
+      setFechaUltimoIngresoFijo(localStorage.getItem('fechaUltimoIngresoFijo') || ''); // Cargar fecha de ingresos fijos
+      setFechaTerminoPeriodoFijo(localStorage.getItem('fechaTerminoPeriodoFijo') || '');
+      setShowFloatingTabFixedIncome(true);
     }
   }, [navigate]);
 
@@ -63,6 +76,11 @@ const NewLayout = () => {
   const handleSaveIncome = () => {
     setShowFloatingTabIncome(false);
     localStorage.setItem('showFloatingTabIncome', 'false');
+  };
+
+  const handleSaveFixedIncome = () => {
+    setShowFloatingTabFixedIncome(false);
+    localStorage.setItem('showFloatingTabFixedIncome', 'false');
   };
 
   const toggleMenu = (menu) => {
@@ -105,7 +123,6 @@ const NewLayout = () => {
 
       if (response.ok) {
         alert('Te has unido al grupo exitosamente.');
-        // Actualiza los grupos del usuario si es necesario
         const gruposUsuario = [...misGrupos, groupCode];
         setMisGrupos(gruposUsuario);
         localStorage.setItem('mis_grupos', JSON.stringify(gruposUsuario));
@@ -135,7 +152,6 @@ const NewLayout = () => {
                 <i className="bi bi-house"></i> Inicio
               </Link>
             </li>
-
             <li className={`menu-item ${activeMenu === 'finanzas' ? 'active' : ''}`} onClick={() => toggleMenu('finanzas')}>
               <div className="dropdown-menu-button">
                 <i className="bi bi-graph-up"></i> Tus Finanzas{' '}
@@ -150,7 +166,6 @@ const NewLayout = () => {
                 </li>
               </ul>
             </li>
-
             <li className={`menu-item ${activeMenu === 'grupo' ? 'active' : ''}`} onClick={() => toggleMenu('grupo')}>
               <div className="dropdown-menu-button">
                 <i className="bi bi-people"></i> Grupos Financieros{' '}
@@ -169,8 +184,8 @@ const NewLayout = () => {
                   <Link
                     to="#"
                     onClick={(e) => {
-                      e.preventDefault(); // Previene la recarga de página
-                      setShowJoinGroupModal(true); // Llama al modal de unirse
+                      e.preventDefault();
+                      setShowJoinGroupModal(true);
                     }}
                   >
                     Unirse a un Grupo
@@ -178,7 +193,6 @@ const NewLayout = () => {
                 </li>
               </ul>
             </li>
-
             <li className={`menu-item ${activeMenu === 'metas' ? 'active' : ''}`} onClick={() => toggleMenu('metas')}>
               <div className="dropdown-menu-button">
                 <i className="bi bi-bar-chart"></i> Metas Financieras{' '}
@@ -219,6 +233,16 @@ const NewLayout = () => {
               onSave={handleSaveIncome}
               descripcionIngreso={descripcionIngreso}
               fechaUltimoIngreso={fechaUltimoIngreso}
+              fechaTerminoPeriodoNoFijo={fechaTerminoPeriodoNoFijo}
+            />
+          )}
+          {showFloatingTabFixedIncome && (
+            <FloatingTabFixedIncome
+              onSave={handleSaveFixedIncome}
+              descripcionIngreso={descripcionIngresoFijo}
+              fechaUltimoIngreso={fechaUltimoIngresoFijo}
+              fechaTerminoPeriodoFijo={fechaTerminoPeriodoFijo} // Asegúrate de pasar esta propiedad correctamente
+
             />
           )}
           <Outlet />
