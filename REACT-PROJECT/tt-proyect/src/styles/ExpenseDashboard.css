@@ -210,3 +210,68 @@
   margin-top: 10px;
   width: 50px; /* Ajusta el tamaño del GIF */
 }
+/* Tabla */
+.grupos-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.grupos-table th,
+.grupos-table td {
+  padding: 12px;
+  border: 1px solid #e1e8f0; /* Bordes sutiles */
+  text-align: center;
+  font-size: 1rem;
+}
+
+.grupos-table th {
+  background-color: #395caf; /* Color de fondo azul oscuro */
+  color: white;
+  font-weight: bold; /* Negrita en las cabeceras */
+}
+
+.grupos-table tr:nth-child(even) {
+  background-color: #f9f9f9; /* Fondo gris claro para filas pares */
+}
+
+.grupos-table tr:hover {
+  background-color: #e2f7e0; /* Fondo verde claro al pasar el cursor */
+}
+
+/* Botones */
+.info-button {
+  background-color: #007bff; /* Azul constante */
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.info-button:hover {
+  background-color: #0056b3; /* Azul más oscuro al pasar el cursor */
+}
+
+.info-button i {
+  font-size: 1.2rem;
+}
+
+.config-button {
+  background-color: #6c757d; /* Gris constante */
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.config-button:hover {
+  background-color: #5a6268; /* Gris más oscuro al pasar el cursor */
+}
+
+.config-button i {
+  font-size: 1.2rem;
+}

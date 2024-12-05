@@ -475,7 +475,7 @@ const IncomeDashboard = () => {
             </div>
 
             <div className="income-list-section">
-              <table className="income-table">
+              <table className="grupos-table">
                 <thead>
                   <tr>
                     <th>Descripción</th>

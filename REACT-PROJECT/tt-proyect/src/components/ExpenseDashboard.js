@@ -477,7 +477,7 @@ const ExpenseDashboard = () => {
             />
           </div>
           <div className="expense-list-section">
-            <table className="expense-table">
+            <table className="grupos-table">
               <thead>
                 <tr>
                   <th>Descripción</th>
