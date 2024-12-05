@@ -95,7 +95,7 @@ const ChangePassword = () => {
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => navigate('/dashboard/configuracionCuenta')}
+              onClick={() => navigate('/dashboard/configuracionCuennta')}
             >
               Cancelar
             </button>

@@ -134,7 +134,7 @@ button:hover {
 }
 
 .progress-bar-container .progress-text {
-  color: #ffffff !important; /* Forzar el color blanco para el texto */
+  color: #000000 !important; /* Forzar el color blanco para el texto */
   font-size: 14px;
   font-weight: bold;
   line-height: 30px;
