@@ -13,6 +13,12 @@
   text-align: left; /* Alinea el texto a la izquierda */
   color: var(--color-gris-oscuro, #333);
 }
+.filter-modal label {
+  color: black; /* Cambia el color del texto a negro */
+  font-weight: bold; /* Opcional: Para resaltar un poco más las etiquetas */
+  margin-bottom: 5px; /* Opcional: Espacio adicional debajo de las etiquetas */
+}
+
 
 .filter-modal-body {
   padding: 20px;

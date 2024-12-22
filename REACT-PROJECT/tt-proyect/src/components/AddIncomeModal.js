@@ -223,7 +223,6 @@ const AddIncomeModal = ({ onClose, onSave }) => {
 
         <div className="modal-buttons">
           <button type="submit" className="btn btn-primary">Guardar Ingreso</button>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
         </div>
       </form>
 

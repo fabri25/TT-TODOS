@@ -60,15 +60,15 @@ const ExpenseDashboard = () => {
         navigate('/');
         return;
       }
-
+  
       const decodedToken = jwtDecode(token);
-
+  
       if (decodedToken.exp * 1000 < Date.now()) {
         localStorage.clear();
         navigate('/');
         return;
       }
-
+  
       const response = await axios.post(
         'http://127.0.0.1:5000/api/gasto/filtered',
         { ...filters },
@@ -79,30 +79,48 @@ const ExpenseDashboard = () => {
           },
         }
       );
-
+  
       const expensesData = response.data;
       setExpenses(expensesData);
-      setFilteredExpenses(expensesData); // Inicializar con la lista completa de gastos
-
-
+      setFilteredExpenses(expensesData);
+  
       const events = transformExpensesToEvents(expensesData);
       setEvents(events);
-
+  
+      // Agrupar y sumar los gastos por descripción
+      const groupedData = expensesData.reduce((acc, curr) => {
+        const { Descripcion, Monto } = curr;
+  
+        if (!acc[Descripcion]) {
+          acc[Descripcion] = 0;
+        }
+        acc[Descripcion] += Number(Monto); // Asegurarse de que el monto sea numérico
+        return acc;
+      }, {});
+  
+      const chartLabels = Object.keys(groupedData); // Descripciones agrupadas
+      const chartValues = Object.values(groupedData); // Sumas agrupadas
+  
+      // Construir los datos para la gráfica
       const data = {
-        labels: expensesData.map((item) => item.Descripcion),
+        labels: chartLabels,
         datasets: [
           {
             label: 'Tus gastos',
-            data: expensesData.map((item) => item.Monto),
+            data: chartValues,
             backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
           },
         ],
       };
+  
       setChartData(data);
     } catch (error) {
       console.error('Error al obtener los datos', error);
     }
   }, [navigate]);
+  
+  
+  
 
   const handleSearchChange = (event) => {
     const searchValue = event.target.value.toLowerCase();
@@ -272,8 +290,10 @@ const ExpenseDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setExpenses(expenses.filter((expense) => expense.ID_Gasto !== expenseToDelete));
+      await fetchExpenses();
       setShowModal(false);
       setExpenseToDelete(null);
+      
     } catch (error) {
       console.error('Error al eliminar el gasto', error);
     }

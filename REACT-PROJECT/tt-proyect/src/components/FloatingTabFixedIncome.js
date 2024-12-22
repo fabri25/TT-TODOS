@@ -82,6 +82,8 @@ const FloatingTabFixedIncome = ({
         if (onSave) {
           onSave(); // Cerrar modal después de guardar
         }
+
+        window.location.reload();
       } catch (error) {
         console.error('Error al procesar el ingreso:', error.response?.data || error);
         alert('Hubo un error al procesar el ingreso. Inténtalo nuevamente.');

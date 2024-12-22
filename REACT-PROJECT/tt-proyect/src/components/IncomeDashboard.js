@@ -61,15 +61,15 @@ const IncomeDashboard = () => {
         navigate('/');
         return;
       }
-
+  
       const decodedToken = jwtDecode(token);
-
+  
       if (decodedToken.exp * 1000 < Date.now()) {
         localStorage.clear();
         navigate('/');
         return;
       }
-
+  
       const response = await axios.post(
         'http://127.0.0.1:5000/api/income/filtered',
         { ...filters },
@@ -80,47 +80,48 @@ const IncomeDashboard = () => {
           },
         }
       );
-
+  
       const ingresosData = response.data;
-
+  
       // Actualizamos los datos para todos los componentes
       setIngresos(ingresosData);
-      setFilteredIngresos(ingresosData); // Inicializa los ingresos filtrados con la lista completa
-
-
+      setFilteredIngresos(ingresosData);
+  
       // Actualizar eventos del calendario
       const events = transformIngresosToEvents(ingresosData);
       setEvents(events);
-
-      // Actualizar los datos de la gráfica
+  
+      // Agrupar datos para la gráfica
       const groupedData = ingresosData.reduce((acc, curr) => {
         const { Descripcion, Monto } = curr;
-        if (!acc[Descripcion]) {
-          acc[Descripcion] = 0;
+        if (acc[Descripcion]) {
+          acc[Descripcion] += parseFloat(Monto);
+        } else {
+          acc[Descripcion] = parseFloat(Monto);
         }
-        acc[Descripcion] += Monto;
         return acc;
       }, {});
-
-      const chartLabels = Object.keys(groupedData);
-      const chartValues = Object.values(groupedData);
-
+  
+      const chartLabels = Object.keys(groupedData); // Descripciones únicas
+      const chartValues = Object.values(groupedData); // Montos sumados
+  
       const data = {
         labels: chartLabels,
         datasets: [
           {
             label: 'Tus ingresos',
             data: chartValues,
-            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'], // Colores personalizados
           },
         ],
       };
-
+  
       setChartData(data);
     } catch (error) {
       console.error('Error al obtener los datos', error);
     }
   }, [navigate]);
+  
 
   useEffect(() => {
     setTimeout(() => {
@@ -274,8 +275,10 @@ const IncomeDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setIngresos(ingresos.filter((ingreso) => ingreso.ID_Ingreso !== incomeToDelete));
+      await fetchIngresos();
       setShowModal(false);
       setIncomeToDelete(null);
+      
     } catch (error) {
       console.error('Error al eliminar el ingreso', error);
     }
