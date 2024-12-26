@@ -2001,6 +2001,7 @@ def registrar_gasto_grupal(grupo_id):
     cursor = connection.cursor(dictionary=True)
 
     try:
+        # Verificar si el usuario es miembro del grupo y está confirmado
         query_verificar = """
         SELECT ID_Usuario, ID_Grupo, Confirmado, 
                CASE WHEN ID_Usuario = (SELECT ID_Admin FROM Grupo WHERE ID_Grupo = %s) THEN 1 ELSE 0 END AS es_admin
@@ -2015,23 +2016,61 @@ def registrar_gasto_grupal(grupo_id):
 
         es_admin = miembro['es_admin']
 
-        if es_admin and not es_mi_gasto:
+        # Caso especial: Gasto para "cualquiera" (asignado_a es None y es_mi_gasto es False)
+        if es_admin and not es_mi_gasto and not asignado_a:
             estado = "Pendiente"
-            asignado_a = None if not asignado_a else asignado_a
+            query_insert_grupal = """
+            INSERT INTO Gasto_Grupal (Descripcion, Monto, Fecha, ID_Grupo, Asignado_A, Estado)
+            VALUES (%s, %s, %s, %s, NULL, %s)
+            """
+            cursor.execute(query_insert_grupal, (descripcion, monto, fecha, grupo_id, estado))
 
-            query_insert = """
+        # Caso: Gasto asignado a un usuario o propio del admin
+        elif es_admin and (es_mi_gasto or asignado_a):
+            estado = "Pendiente" if asignado_a else "Pagado"
+            id_usuario_destino = asignado_a if asignado_a else user_id
+            query_insert_grupal = """
             INSERT INTO Gasto_Grupal (Descripcion, Monto, Fecha, ID_Grupo, Asignado_A, Estado)
             VALUES (%s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query_insert, (descripcion, monto, fecha, grupo_id, asignado_a, estado))
+            cursor.execute(query_insert_grupal, (descripcion, monto, fecha, grupo_id, id_usuario_destino, estado))
 
+            # Registrar en Gasto personal
+            query_insert_personal = """
+            INSERT INTO Gasto (Descripcion, Monto, Fecha, Categoria, ID_Subcategoria, ID_Usuario, Periodico, ID_Grupo, Periodicidad)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            categoria = "Grupal"
+            subcategoria = None
+            periodicidad = None
+            periodico = 0
+
+            cursor.execute(query_insert_personal, (
+                descripcion, monto, fecha, categoria, subcategoria, id_usuario_destino, periodico, grupo_id, periodicidad
+            ))
+
+        # Caso: Gasto propio del usuario no administrador
         else:
             estado = "Pagado"
-            query_insert = """
+            query_insert_grupal = """
             INSERT INTO Gasto_Grupal (Descripcion, Monto, Fecha, ID_Grupo, ID_Usuario, Estado)
             VALUES (%s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(query_insert, (descripcion, monto, fecha, grupo_id, user_id, estado))
+            cursor.execute(query_insert_grupal, (descripcion, monto, fecha, grupo_id, user_id, estado))
+
+            # Registrar en Gasto personal
+            query_insert_personal = """
+            INSERT INTO Gasto (Descripcion, Monto, Fecha, Categoria, ID_Subcategoria, ID_Usuario, Periodico, ID_Grupo, Periodicidad)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            categoria = "Grupal"
+            subcategoria = None
+            periodicidad = None
+            periodico = 0
+
+            cursor.execute(query_insert_personal, (
+                descripcion, monto, fecha, categoria, subcategoria, user_id, periodico, grupo_id, periodicidad
+            ))
 
         connection.commit()
 
@@ -2044,6 +2083,7 @@ def registrar_gasto_grupal(grupo_id):
     finally:
         cursor.close()
         connection.close()
+
 
 
 
@@ -2432,7 +2472,7 @@ def registrar_aporte_grupal(grupo_id, meta_id):
 @jwt_refresh_if_active
 def reclamar_gasto(grupo_id, gasto_id):
     """
-    Endpoint para que un usuario reclame un gasto grupal como suyo.
+    Endpoint para que un usuario reclame un gasto grupal como suyo y lo registre como gasto personal.
     """
     user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
 
@@ -2458,7 +2498,7 @@ def reclamar_gasto(grupo_id, gasto_id):
 
         # Verificar que el gasto existe y aún está "pendiente"
         query_gasto = """
-        SELECT ID_Gasto_Grupal, Estado, ID_Usuario
+        SELECT ID_Gasto_Grupal, Estado, ID_Usuario, Descripcion, Monto, Fecha
         FROM Gasto_Grupal
         WHERE ID_Gasto_Grupal = %s AND ID_Grupo = %s
         """
@@ -2471,16 +2511,34 @@ def reclamar_gasto(grupo_id, gasto_id):
         if gasto['Estado'] != 'Pendiente' or gasto['ID_Usuario'] is not None:
             return jsonify({"error": "Este gasto ya ha sido reclamado o no está pendiente."}), 400
 
-        # Actualizar el gasto para asignarlo al usuario
+        # Actualizar el gasto grupal para asignarlo al usuario
         query_actualizar = """
         UPDATE Gasto_Grupal
         SET ID_Usuario = %s, Estado = 'Pagado'
         WHERE ID_Gasto_Grupal = %s AND ID_Grupo = %s
         """
         cursor.execute(query_actualizar, (user_id, gasto_id, grupo_id))
+
+        # Insertar el gasto en la tabla de Gasto personal
+        query_insert_personal = """
+        INSERT INTO Gasto (Descripcion, Monto, Fecha, Categoria, ID_Subcategoria, ID_Usuario, Periodico, ID_Grupo, Periodicidad)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        descripcion = gasto['Descripcion']
+        monto = gasto['Monto']
+        fecha = gasto['Fecha']
+        categoria = "Grupal"
+        subcategoria = None  # Si no hay subcategorías
+        periodicidad = None  # No aplica periodicidad para este caso
+        periodico = 0  # No es periódico
+
+        cursor.execute(query_insert_personal, (
+            descripcion, monto, fecha, categoria, subcategoria, user_id, periodico, grupo_id, periodicidad
+        ))
+
         connection.commit()
 
-        return jsonify({"message": "Gasto reclamado exitosamente"}), 200
+        return jsonify({"message": "Gasto reclamado y registrado como gasto personal exitosamente"}), 200
 
     except Exception as e:
         connection.rollback()
@@ -2489,6 +2547,9 @@ def reclamar_gasto(grupo_id, gasto_id):
     finally:
         cursor.close()
         connection.close()
+
+
+
 
 @app.route('/api/user/info', methods=['GET'], endpoint='get_user_info')
 @jwt_refresh_if_active
