@@ -110,7 +110,9 @@ const RegisterGoal = () => {
     montoTotal: '',
     tasaInteres: '',
     fechaInicio: '',
-    plazo: ''
+    plazo: '',
+    cuotaMensual: '', // Agregamos cuota mensual
+    totalAPagar: ''   // Agregamos total a pagar
   });
 
   const [leyendaDeuda, setLeyendaDeuda] = useState(''); // Leyenda dinámica
@@ -121,11 +123,6 @@ const RegisterGoal = () => {
     const n = deuda.plazo ? parseInt(deuda.plazo) : 0; // Número de pagos (meses)
     const montoInicial = deuda.montoDeuda ? parseFloat(deuda.montoDeuda) : 0; // Monto inicial (sin intereses)
   
-    console.log("Tasa anual (decimal):", tasaAnual);
-    console.log("Tasa mensual (decimal):", rMensual);
-    console.log("Número de pagos (n):", n);
-    console.log("Monto inicial (sin intereses):", montoInicial);
-  
     if (!rMensual || !n || !montoInicial) {
       console.log("Datos incompletos para calcular.");
       setLeyendaDeuda(""); // No mostrar leyenda si los datos no están completos
@@ -133,19 +130,19 @@ const RegisterGoal = () => {
     }
   
     const numerador = rMensual * montoInicial;
-    console.log("Numerador:", numerador);
-  
     const denominador = 1 - Math.pow(1 + rMensual, -n);
-    console.log("Denominador:", denominador);
-  
     const cuotaMensual = numerador / denominador;
-    console.log("Cuota mensual calculada:", cuotaMensual);
-  
     const totalAPagar = cuotaMensual * n; // Total a pagar de la deuda
     const interesesTotales = totalAPagar - montoInicial; // Intereses totales
-    console.log("Total a pagar:", totalAPagar);
-    console.log("Intereses totales:", interesesTotales);
   
+    // Actualizamos el estado con los valores calculados
+    setDeuda((prev) => ({
+      ...prev,
+      montoTotal: totalAPagar.toFixed(2), // Actualiza el monto total
+      cuotaMensual: cuotaMensual.toFixed(2) // Actualiza la cuota mensual
+    }));
+  
+    // Creamos la leyenda para la visualización
     const leyenda = `
       Cuota Mensual: ${cuotaMensual.toFixed(2)} MXN
       Total a Pagar: ${totalAPagar.toFixed(2)} MXN
@@ -155,7 +152,6 @@ const RegisterGoal = () => {
   };
   
 
-  
   const handleDeudaBlur = (e) => {
     const { name, value } = e.target;
   
@@ -187,33 +183,74 @@ const RegisterGoal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const confirmacion = window.confirm(
-      `¿Estás seguro de que deseas crear la meta "${goal.nombre}" con un monto objetivo de ${goal.montoObjetivo}?`
+      `¿Estás seguro de que deseas crear esta meta?`
     );
-
+  
     if (!confirmacion) {
       return;
     }
-
+  
+    const token = localStorage.getItem('token');
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  
     try {
-      const token = localStorage.getItem('token');
-      const data = {
-        nombre: goal.nombre,
-        montoObjetivo: goal.montoObjetivo,
-        fechaInicio: goal.fechaInicio,
-        mesesParaMeta,
-        fechaTermino,
-        ahorroMensual,
-      };
-      await axios.post('http://127.0.0.1:5000/api/metas', data, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
+      if (tipoMeta === 'fija') {
+        // Meta fija
+        const data = {
+          nombre: goal.nombre,
+          montoObjetivo: goal.montoObjetivo,
+          fechaInicio: goal.fechaInicio,
+          mesesParaMeta,
+          fechaTermino,
+          ahorroMensual,
+        };
+        await axios.post('http://127.0.0.1:5000/api/metas', data, { headers });
+      } else if (tipoMeta === 'ahorro') {
+        // Meta de ahorro
+        const data = {
+          descripcion: goal.descripcion,
+          montoActual: goal.montoActual || 0.0,
+          fechaInicio: goal.fechaInicio,
+          tasaInteres: goal.tasaInteres,
+        };
+        await axios.post('http://127.0.0.1:5000/api/ahorro', data, { headers });
+      } else if (tipoMeta === 'deuda') {
+        const updatedDeuda = { ...deuda }; // Copia del estado actualizado
+
+        // Validar que cuotaMensual se haya calculado
+        if (!updatedDeuda.cuotaMensual) {
+          calcularCuotaIntereses(); // Forzamos el cálculo
+          setTimeout(() => {
+            console.error("Calculando cuota mensual nuevamente...");
+          }, 0);
+          return;
+        }
+        const data = {
+          descripcion: deuda.descripcion,
+          montoDeuda: unformatCurrency(deuda.montoDeuda),
+          montoTotal: unformatCurrency(deuda.montoTotal),
+          tasaInteres: unformatPercentage(deuda.tasaInteres),
+          fechaInicio: deuda.fechaInicio,
+          cuotaMensual: unformatCurrency(deuda.cuotaMensual),
+          plazo: unformatMonths(deuda.plazo),
+        };
+    
+      
+        console.log("Datos enviados para deuda:", data);
+      
+        await axios.post('http://127.0.0.1:5000/api/deuda', data, { headers });
+      }
       navigate('/dashboard/metas-financieras');
     } catch (error) {
-      console.error('Error al crear la meta', error);
+      console.error('Error al guardar la meta', error);
     }
   };
+  
 
   const formatNumber = (value) => {
     if (!value) return "";
@@ -244,7 +281,9 @@ const RegisterGoal = () => {
   const unformatNumber = (value) => {
     return value.replace(/,/g, "");
   };
-  
+  const unformatCurrency = (value) => {
+    return value.replace(/\$/g, '').replace(/,/g, '').trim();
+  };
 
   return (
     <div className="register-goal-container">
@@ -335,11 +374,7 @@ const RegisterGoal = () => {
       )}
       {tipoMeta === 'ahorro' && (
         <div id="form-meta-ahorro">
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            // Lógica para manejar el envío del formulario de ahorro fijo
-            console.log('Ahorro registrado');
-          }}>
+          <form onSubmit={handleSubmit}>
             <input
               type="text"
               name="descripcion"
@@ -398,12 +433,7 @@ const RegisterGoal = () => {
       )}
       {tipoMeta === 'deuda' && (
         <div id="form-meta-deuda">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              console.log('Deuda registrada', deuda);
-            }}
-          >
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
             <small className="form-text text-muted">
               Selecciona la fecha de inicio de la deuda
@@ -498,12 +528,6 @@ const RegisterGoal = () => {
           </form>
         </div>
       )}
-
-
-
-
-
-
 
     </div>
   );

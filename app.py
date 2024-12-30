@@ -1068,6 +1068,94 @@ def crear_meta():
 
 
 
+@app.route('/api/ahorro', methods=['POST'], endpoint='crear_ahorro')
+@jwt_refresh_if_active
+def crear_ahorro():
+    user_id = get_jwt_identity()
+    data = request.json
+    descripcion = data.get('descripcion')
+    monto_actual = data.get('montoActual', 0.0)
+    fecha_inicio = data.get('fechaInicio')
+    tasa_interes = data.get('tasaInteres')
+    
+    if not all([descripcion, fecha_inicio, tasa_interes]):
+        return jsonify({"error": "Datos incompletos"}), 400
+    
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+    
+    cursor = connection.cursor()
+    query = """
+        INSERT INTO Ahorro1 (Descripcion, Monto_Actual, Fecha_Inicio, Tasa_Interes, ID_Usuario)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    cursor.execute(query, (descripcion, monto_actual, fecha_inicio, tasa_interes, user_id))
+    connection.commit()
+    connection.close()
+    
+    return jsonify({"message": "Meta de ahorro creada exitosamente"}), 201
+
+
+
+
+@app.route('/api/deuda', methods=['POST'], endpoint='crear_deuda')
+@jwt_refresh_if_active
+def crear_deuda():
+    user_id = get_jwt_identity()
+    data = request.json
+    descripcion = data.get('descripcion')
+    monto_deuda = data.get('montoDeuda')
+    monto_total = data.get('montoTotal')
+    tasa_interes = data.get('tasaInteres')
+    fecha_inicio = data.get('fechaInicio')
+    cuota_mensual = data.get('cuotaMensual')
+    plazo = data.get('plazo')  # Número de meses
+    
+    if not all([descripcion, monto_deuda, monto_total, tasa_interes, fecha_inicio, cuota_mensual, plazo]):
+        return jsonify({"error": "Datos incompletos"}), 400
+
+    try:
+        # Convertir el plazo y la fecha de inicio
+        plazo = int(plazo)
+        fecha_inicio_dt = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+
+        # Calcular la fecha límite de la deuda
+        fecha_limite = fecha_inicio_dt + relativedelta(months=plazo)
+
+        connection = create_connection()
+        if connection is None:
+            return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+        cursor = connection.cursor()
+
+        # Insertar en la tabla Deuda
+        query_deuda = """
+            INSERT INTO Deuda (Descripcion, Monto_Deuda, Monto_Total, Tasa_Interes, Fecha_Inicio, Plazo, Fecha_Limite, ID_Usuario)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query_deuda, (descripcion, monto_deuda, monto_total, tasa_interes, fecha_inicio, plazo, fecha_limite.date(), user_id))
+        deuda_id = cursor.lastrowid
+
+        # Insertar en la tabla Deuda_Cuota
+        for i in range(plazo):
+            cuota_fecha_limite = fecha_inicio_dt + relativedelta(months=i + 1)  # Calcular la fecha límite de cada cuota
+            query_cuota = """
+                INSERT INTO Deuda_Cuota (ID_Deuda, Cuota, Fecha_Limite, Estado)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query_cuota, (deuda_id, cuota_mensual, cuota_fecha_limite.date(), 'Pendiente'))
+
+        connection.commit()
+        connection.close()
+
+        return jsonify({"message": "Meta de deuda creada exitosamente"}), 201
+
+    except Exception as e:
+        print(f"Error al crear la deuda: {e}")
+        return jsonify({"error": "Error al crear la deuda"}), 500
+
+
 @app.route('/api/validar-ingresos-gastos', methods=['GET'], endpoint='Promedio_gastos_ingresos')
 @jwt_refresh_if_active
 def validar_ingresos_gastos():
