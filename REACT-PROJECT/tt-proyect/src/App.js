@@ -35,6 +35,8 @@ import EditAccount from './components/EditAccount';
 import ChangeEmail from './components/ChangeEmail';
 import ChangePassword from './components/ChangePassword';
 import CoursesCatalog from './components/CoursesCatalog';
+import VisualizarAhorros from './components/VisualizarAhorros';
+import DetalleAhorro from './components/DetalleAhorro';
 
 
 function App() {
@@ -70,6 +72,8 @@ function App() {
             <Route path="/dashboard/configuracion/cambiar-contrasena" element={<ChangePassword />} />
             <Route path="/dashboard/validar-datos-financieros" element={<CheckFinancialData />} /> 
             <Route path="/dashboard/metas-financieras" element={<FinancialGoals />} />
+            <Route path="/dashboard/ahorros" element={<VisualizarAhorros />} />
+            <Route path="/dashboard/ahorros/:idAhorro" element={<DetalleAhorro />} />
             <Route path="/dashboard/registrar-meta" element={<RegisterGoal />} />
             <Route path="/dashboard/metas/:idMeta" element={<DetalleMeta />} />
             <Route path="/dashboard/grupo/:grupoId" element={<GroupFinanceDashboard />}/>

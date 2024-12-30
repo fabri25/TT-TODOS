@@ -1074,7 +1074,7 @@ def crear_ahorro():
     user_id = get_jwt_identity()
     data = request.json
     descripcion = data.get('descripcion')
-    monto_actual = data.get('montoActual', 0.0)
+    monto_actual = float(data.get('montoActual', 0.0))  # Convertir a float
     fecha_inicio = data.get('fechaInicio')
     tasa_interes = data.get('tasaInteres')
     
@@ -1085,16 +1085,157 @@ def crear_ahorro():
     if connection is None:
         return jsonify({"error": "Error al conectar a la base de datos"}), 500
     
-    cursor = connection.cursor()
-    query = """
-        INSERT INTO Ahorro1 (Descripcion, Monto_Actual, Fecha_Inicio, Tasa_Interes, ID_Usuario)
-        VALUES (%s, %s, %s, %s, %s)
-    """
-    cursor.execute(query, (descripcion, monto_actual, fecha_inicio, tasa_interes, user_id))
-    connection.commit()
-    connection.close()
+    try:
+        cursor = connection.cursor()
+        
+        # Insertar en la tabla Ahorro1
+        query_ahorro = """
+            INSERT INTO Ahorro1 (Descripcion, Monto_Actual, Fecha_Inicio, Tasa_Interes, ID_Usuario)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query_ahorro, (descripcion, monto_actual, fecha_inicio, tasa_interes, user_id))
+        
+        # Obtener el ID del ahorro recién insertado
+        id_ahorro = cursor.lastrowid
+
+        # Si hay un monto inicial, registrar en la tabla Abono_Ahorro
+        if monto_actual > 0:  # Ahora la comparación es válida
+            query_abono = """
+                INSERT INTO Abono_Ahorro (ID_Ahorro, ID_Usuario, Abono, Fecha_Abono)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query_abono, (id_ahorro, user_id, monto_actual, fecha_inicio))
+        
+        connection.commit()
+        return jsonify({"message": "Meta de ahorro creada exitosamente"}), 201
     
-    return jsonify({"message": "Meta de ahorro creada exitosamente"}), 201
+    except Exception as e:
+        connection.rollback()
+        print(f"Error al crear el ahorro: {e}")
+        return jsonify({"error": "Error al registrar el ahorro"}), 500
+    
+    finally:
+        connection.close()
+
+
+
+
+@app.route('/api/ahorros', methods=['GET'], endpoint='obtener_ahorros')
+@jwt_refresh_if_active
+def obtener_ahorros():
+    user_id = get_jwt_identity()  # Obtener el ID del usuario autenticado
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+        query = """
+            SELECT ID_Ahorro, Descripcion, Monto_Actual, Fecha_Inicio, Tasa_Interes
+            FROM Ahorro1
+            WHERE ID_Usuario = %s
+        """
+        cursor.execute(query, (user_id,))
+        ahorros = cursor.fetchall()
+        connection.close()
+
+        return jsonify(ahorros), 200
+    except Exception as e:
+        print("Error al obtener ahorros:", e)
+        return jsonify({"error": "Error al obtener ahorros"}), 500
+
+    
+
+@app.route('/api/ahorro/<int:id_ahorro>', methods=['GET'], endpoint='obtener_detalle_ahorro')
+@jwt_required()
+def obtener_detalle_ahorro(id_ahorro):
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Obtener el detalle del ahorro
+        query_ahorro = """
+            SELECT ID_Ahorro, Descripcion, Monto_Actual, Fecha_Inicio, Tasa_Interes
+            FROM Ahorro1
+            WHERE ID_Ahorro = %s AND ID_Usuario = %s
+        """
+        cursor.execute(query_ahorro, (id_ahorro, user_id))
+        ahorro = cursor.fetchone()
+
+        if not ahorro:
+            return jsonify({"error": "Ahorro no encontrado"}), 404
+
+        # Obtener los abonos relacionados
+        query_abonos = """
+            SELECT ID_Abono, Abono, Fecha_Abono
+            FROM Abono_Ahorro
+            WHERE ID_Ahorro = %s
+            ORDER BY Fecha_Abono ASC
+        """
+        cursor.execute(query_abonos, (id_ahorro,))
+        abonos = cursor.fetchall()
+
+        ahorro['Abonos'] = abonos
+
+        return jsonify(ahorro), 200
+
+    except Exception as e:
+        print(f"Error al obtener el detalle del ahorro: {e}")
+        return jsonify({"error": "Error al obtener el detalle del ahorro"}), 500
+
+    finally:
+        connection.close()
+
+
+
+@app.route('/api/ahorro/<int:id_ahorro>/abonos', methods=['POST'], endpoint='registrar_abono_ahorro')
+@jwt_required()
+def registrar_abono_ahorro(id_ahorro):
+    user_id = get_jwt_identity()
+    data = request.json
+    abono = data.get('abono')
+    fecha_abono = data.get('fechaAbono')
+
+    if not abono or not fecha_abono:
+        return jsonify({"error": "Datos incompletos"}), 400
+
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor()
+
+        # Insertar el abono
+        query_abono = """
+            INSERT INTO Abono_Ahorro (ID_Ahorro, ID_Usuario, Abono, Fecha_Abono)
+            VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query_abono, (id_ahorro, user_id, abono, fecha_abono))
+
+        # Actualizar el monto actual del ahorro
+        query_actualizar_ahorro = """
+            UPDATE Ahorro1
+            SET Monto_Actual = Monto_Actual + %s
+            WHERE ID_Ahorro = %s AND ID_Usuario = %s
+        """
+        cursor.execute(query_actualizar_ahorro, (abono, id_ahorro, user_id))
+
+        connection.commit()
+        return jsonify({"message": "Abono registrado exitosamente"}), 201
+
+    except Exception as e:
+        connection.rollback()
+        print(f"Error al registrar el abono: {e}")
+        return jsonify({"error": "Error al registrar el abono"}), 500
+
+    finally:
+        connection.close()
+
 
 
 

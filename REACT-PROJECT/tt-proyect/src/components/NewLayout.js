@@ -205,6 +205,12 @@ const NewLayout = () => {
                 <li>
                   <Link to="/dashboard/metas-financieras">Metas Financieras</Link>
                 </li>
+                <li>
+                  <Link to="/dashboard/deudas">Deudas</Link> {/* Nueva opción para Deudas */}
+                </li>
+                <li>
+                  <Link to="/dashboard/ahorros">Ahorros</Link> {/* Nueva opción para Ahorros */}
+                </li>
               </ul>
             </li>
             <li className={`menu-item ${activeMenu === 'cursos' ? 'active' : ''}`}>
