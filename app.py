@@ -1295,6 +1295,102 @@ def crear_deuda():
     except Exception as e:
         print(f"Error al crear la deuda: {e}")
         return jsonify({"error": "Error al crear la deuda"}), 500
+    
+
+@app.route('/api/deudas', methods=['GET'], endpoint='obtener_deudas')
+@jwt_refresh_if_active
+def obtener_deudas():
+    user_id = get_jwt_identity()  # ID del usuario autenticado
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+        query = """
+            SELECT ID_Deuda, Descripcion, Monto_Deuda, Monto_Total, Tasa_Interes, Plazo, Fecha_Inicio
+            FROM Deuda
+            WHERE ID_Usuario = %s
+        """
+        cursor.execute(query, (user_id,))
+        deudas = cursor.fetchall()
+        connection.close()
+
+        return jsonify(deudas), 200
+    except Exception as e:
+        print("Error al obtener las deudas:", e)
+        return jsonify({"error": "Error al obtener las deudas"}), 500
+    
+
+@app.route('/api/deudas/<int:id_deuda>', methods=['DELETE'], endpoint='eliminar_deuda')
+@jwt_refresh_if_active
+def eliminar_deuda(id_deuda):
+    user_id = get_jwt_identity()  # ID del usuario autenticado
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor()
+        query = """
+            DELETE FROM Deuda
+            WHERE ID_Deuda = %s AND ID_Usuario = %s
+        """
+        cursor.execute(query, (id_deuda, user_id))
+        connection.commit()
+        connection.close()
+
+        return jsonify({"message": "Deuda eliminada exitosamente"}), 200
+    except Exception as e:
+        print("Error al eliminar la deuda:", e)
+        return jsonify({"error": "Error al eliminar la deuda"}), 500
+
+
+
+@app.route('/api/deudas/<int:id_deuda>', methods=['GET'], endpoint='obtener_detalle_deuda')
+@jwt_refresh_if_active
+def obtener_detalle_deuda(id_deuda):
+    user_id = get_jwt_identity()
+    connection = create_connection()
+    if connection is None:
+        return jsonify({"error": "Error al conectar a la base de datos"}), 500
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Obtener la información de la deuda
+        query_deuda = """
+            SELECT ID_Deuda, Descripcion, Monto_Deuda, Monto_Total, Tasa_Interes, Plazo, Fecha_Inicio
+            FROM Deuda
+            WHERE ID_Deuda = %s AND ID_Usuario = %s
+        """
+        cursor.execute(query_deuda, (id_deuda, user_id))
+        deuda = cursor.fetchone()
+
+        if not deuda:
+            return jsonify({"error": "Deuda no encontrada"}), 404
+
+        # Obtener las cuotas relacionadas
+        query_cuotas = """
+            SELECT ID_Deuda_Cuota, Cuota, Fecha_Limite, Estado
+            FROM Deuda_Cuota
+            WHERE ID_Deuda = %s
+            ORDER BY Fecha_Limite ASC
+        """
+        cursor.execute(query_cuotas, (id_deuda,))
+        cuotas = cursor.fetchall()
+
+        deuda['Cuotas'] = cuotas
+
+        return jsonify(deuda), 200
+
+    except Exception as e:
+        print(f"Error al obtener el detalle de la deuda: {e}")
+        return jsonify({"error": "Error al obtener el detalle de la deuda"}), 500
+
+    finally:
+        connection.close()
+
 
 
 @app.route('/api/validar-ingresos-gastos', methods=['GET'], endpoint='Promedio_gastos_ingresos')

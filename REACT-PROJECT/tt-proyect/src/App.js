@@ -37,6 +37,8 @@ import ChangePassword from './components/ChangePassword';
 import CoursesCatalog from './components/CoursesCatalog';
 import VisualizarAhorros from './components/VisualizarAhorros';
 import DetalleAhorro from './components/DetalleAhorro';
+import VisualizarDeudas from './components/VisualizarDeudas';
+import DetalleDeuda from './components/DetalleDeuda';
 
 
 function App() {
@@ -73,7 +75,9 @@ function App() {
             <Route path="/dashboard/validar-datos-financieros" element={<CheckFinancialData />} /> 
             <Route path="/dashboard/metas-financieras" element={<FinancialGoals />} />
             <Route path="/dashboard/ahorros" element={<VisualizarAhorros />} />
+            <Route path="/dashboard/deudas" element={<VisualizarDeudas />} />
             <Route path="/dashboard/ahorros/:idAhorro" element={<DetalleAhorro />} />
+            <Route path="/dashboard/deudas/:idDeuda" element={<DetalleDeuda />} />
             <Route path="/dashboard/registrar-meta" element={<RegisterGoal />} />
             <Route path="/dashboard/metas/:idMeta" element={<DetalleMeta />} />
             <Route path="/dashboard/grupo/:grupoId" element={<GroupFinanceDashboard />}/>

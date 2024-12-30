@@ -167,3 +167,48 @@ button:hover {
   margin-top: 10px;
   width: 50px; /* Ajusta el tamaño del GIF */
 }
+.action-button.pay-button {
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+/* Botón amarillo con bordes redondeados */
+.action-button.pay-button-yellow {
+  background-color: yellow;
+  color: black;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+/* Efectos hover y active para el botón */
+.action-button.pay-button-yellow:hover {
+  background-color: gold;
+}
+
+.action-button.pay-button-yellow:active {
+  background-color: orange;
+}
+
+/* Centrado de contenido dentro de las celdas */
+.table-cell-center {
+  text-align: center; /* Centra horizontalmente */
+  vertical-align: middle; /* Centra verticalmente */
+}
+
+/* Etiqueta para las cuotas pagadas */
+.paid-label {
+  font-weight: bold;
+  color: green;
+}
