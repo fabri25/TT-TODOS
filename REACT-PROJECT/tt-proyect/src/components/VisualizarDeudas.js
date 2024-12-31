@@ -83,12 +83,18 @@ const VisualizarDeudas = () => {
                   })}
                 </td>
                 <td>
-                  {parseFloat(deuda.Monto_Total_Interes).toLocaleString('es-MX', {
-                    style: 'currency',
-                    currency: 'MXN',
-                  })}
+                  {deuda.Monto_Total
+                    ? parseFloat(deuda.Monto_Total).toLocaleString('es-MX', {
+                        style: 'currency',
+                        currency: 'MXN',
+                      })
+                    : 'N/A'}
                 </td>
-                <td>{parseFloat(deuda.Tasa_Interes).toFixed(2)}%</td>
+                <td>
+                  {parseFloat(deuda.Tasa_Interes) === 0
+                    ? "MSI"
+                    : `${parseFloat(deuda.Tasa_Interes).toFixed(2)}%`}
+                </td>
                 <td>{deuda.Plazo}</td>
                 <td>{new Date(deuda.Fecha_Inicio).toLocaleDateString()}</td>
                 <td>

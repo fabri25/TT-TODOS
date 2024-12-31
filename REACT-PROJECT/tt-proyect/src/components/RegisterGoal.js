@@ -117,139 +117,197 @@ const RegisterGoal = () => {
 
   const [leyendaDeuda, setLeyendaDeuda] = useState(''); // Leyenda dinámica
 
-  const calcularCuotaIntereses = () => {
-    const tasaAnual = deuda.tasaInteres ? parseFloat(deuda.tasaInteres) / 100 : 0; // Tasa anual en decimal
-    const rMensual = tasaAnual / 12; // Tasa mensual
-    const n = deuda.plazo ? parseInt(deuda.plazo) : 0; // Número de pagos (meses)
-    const montoInicial = deuda.montoDeuda ? parseFloat(deuda.montoDeuda) : 0; // Monto inicial (sin intereses)
-  
-    if (!rMensual || !n || !montoInicial) {
-      console.log("Datos incompletos para calcular.");
-      setLeyendaDeuda(""); // No mostrar leyenda si los datos no están completos
-      return;
-    }
-  
-    const numerador = rMensual * montoInicial;
-    const denominador = 1 - Math.pow(1 + rMensual, -n);
-    const cuotaMensual = numerador / denominador;
-    const totalAPagar = cuotaMensual * n; // Total a pagar de la deuda
-    const interesesTotales = totalAPagar - montoInicial; // Intereses totales
-  
-    // Actualizamos el estado con los valores calculados
-    setDeuda((prev) => ({
-      ...prev,
-      montoTotal: totalAPagar.toFixed(2), // Actualiza el monto total
-      cuotaMensual: cuotaMensual.toFixed(2) // Actualiza la cuota mensual
-    }));
-  
-    // Creamos la leyenda para la visualización
-    const leyenda = `
-      Cuota Mensual: ${cuotaMensual.toFixed(2)} MXN
-      Total a Pagar: ${totalAPagar.toFixed(2)} MXN
-      Intereses Totales: ${interesesTotales.toFixed(2)} MXN
-    `;
-    setLeyendaDeuda(leyenda);
-  };
-  
-
   const handleDeudaBlur = (e) => {
     const { name, value } = e.target;
   
+    // Eliminar el formato del valor ingresado
     let formattedValue = value;
+    let rawValue = value;
   
-    // Formatear el valor según el campo
-    if (name === "tasaInteres") {
-      formattedValue = formatPercentage(unformatPercentage(value));
+    if (name === "tasaInteres" && !deuda.msi) {
+      rawValue = unformatPercentage(value);
+      formattedValue = formatPercentage(rawValue);
     } else if (name === "plazo") {
-      formattedValue = formatMonths(unformatMonths(value));
+      rawValue = unformatMonths(value);
+      formattedValue = formatMonths(rawValue);
     } else if (name === "montoDeuda" || name === "montoTotal") {
-      formattedValue = formatNumber(unformatNumber(value));
+      rawValue = unformatNumber(value);
+      formattedValue = formatNumber(rawValue);
     }
   
-    // Actualizar el estado de deuda con el valor formateado
+    // Actualizar estado con el valor formateado
     setDeuda((prev) => {
       const updatedDeuda = { ...prev, [name]: formattedValue };
   
-      // Ejecutar los cálculos después de actualizar el estado
+      // Usar valores sin formato para los cálculos
+      const deudaSinFormato = {
+        ...updatedDeuda,
+        [name]: rawValue,
+      };
+  
+      // Recalcular si los campos afectan los cálculos
       if (["montoDeuda", "montoTotal", "tasaInteres", "plazo"].includes(name)) {
-        setTimeout(() => calcularCuotaIntereses(updatedDeuda), 0);
+        setTimeout(() => calcularCuotaIntereses(deudaSinFormato), 0);
       }
   
       return updatedDeuda;
     });
   };
   
+  const calcularCuotaIntereses = (deudaSinFormato = deuda) => {
+    // Usar valores desformateados para cálculos
+    const { msi, montoDeuda, tasaInteres, plazo } = deudaSinFormato;
   
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (msi) {
+      // Cálculo de MSI: cuota = monto inicial / plazo
+      const montoInicial = parseFloat(montoDeuda) || 0;
+      const n = parseInt(plazo) || 0;
   
-    const confirmacion = window.confirm(
-      `¿Estás seguro de que deseas crear esta meta?`
-    );
+      if (!n || !montoInicial) {
+        setLeyendaDeuda("Datos incompletos para calcular cuota a MSI.");
+        return;
+      }
   
-    if (!confirmacion) {
+      const cuotaMensual = montoInicial / n;
+      setDeuda((prev) => ({
+        ...prev,
+        montoTotal: montoInicial.toFixed(2),
+        cuotaMensual: cuotaMensual.toFixed(2),
+      }));
+  
+      setLeyendaDeuda(`Cuota Mensual a MSI: ${formatNumber(cuotaMensual)} MXN`);
       return;
     }
   
+    // Cálculo normal con intereses
+    const tasaAnual = parseFloat(tasaInteres) / 100 || 0;
+    const rMensual = tasaAnual / 12;
+    const n = parseInt(plazo) || 0;
+    const montoInicial = parseFloat(montoDeuda) || 0;
+  
+    if (!rMensual || !n || !montoInicial) {
+      setLeyendaDeuda("Datos incompletos para calcular.");
+      return;
+    }
+  
+    const numerador = rMensual * montoInicial;
+    const denominador = 1 - Math.pow(1 + rMensual, -n);
+    const cuotaMensual = numerador / denominador;
+    const totalAPagar = cuotaMensual * n;
+    const interesesTotales = totalAPagar - montoInicial;
+  
+    setDeuda((prev) => ({
+      ...prev,
+      montoTotal: totalAPagar.toFixed(2),
+      cuotaMensual: cuotaMensual.toFixed(2),
+    }));
+  
+    setLeyendaDeuda(`
+      Cuota Mensual: ${formatNumber(cuotaMensual)} MXN
+      Total a Pagar: ${formatNumber(totalAPagar)} MXN
+      Intereses Totales: ${formatNumber(interesesTotales)} MXN
+    `);
+  };
+  
+  
+  
+  const handleMsiChange = (e) => {
+    const esMsi = e.target.checked;
+  
+    setDeuda((prev) => {
+      const updatedDeuda = { ...prev, msi: esMsi };
+  
+      // Limpiar campos según el estado del MSI
+      if (esMsi) {
+        updatedDeuda.tasaInteres = "";
+        updatedDeuda.montoTotal = "";
+      } else {
+        updatedDeuda.cuotaMensual = "";
+      }
+  
+      return updatedDeuda;
+    });
+  
+    // Recalcular después de limpiar campos
+    setTimeout(() => calcularCuotaIntereses(), 0);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const confirmacion = window.confirm(
+        `¿Estás seguro de que deseas crear esta meta?`
+    );
+
+    if (!confirmacion) {
+        return;
+    }
+
     const token = localStorage.getItem('token');
     const headers = {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
     };
-  
-    try {
-      if (tipoMeta === 'fija') {
-        // Meta fija
-        const data = {
-          nombre: goal.nombre,
-          montoObjetivo: goal.montoObjetivo,
-          fechaInicio: goal.fechaInicio,
-          mesesParaMeta,
-          fechaTermino,
-          ahorroMensual,
-        };
-        await axios.post('http://127.0.0.1:5000/api/metas', data, { headers });
-      } else if (tipoMeta === 'ahorro') {
-        // Meta de ahorro
-        const data = {
-          descripcion: goal.descripcion,
-          montoActual: goal.montoActual || 0.0,
-          fechaInicio: goal.fechaInicio,
-          tasaInteres: goal.tasaInteres,
-        };
-        await axios.post('http://127.0.0.1:5000/api/ahorro', data, { headers });
-      } else if (tipoMeta === 'deuda') {
-        const updatedDeuda = { ...deuda }; // Copia del estado actualizado
 
-        // Validar que cuotaMensual se haya calculado
-        if (!updatedDeuda.cuotaMensual) {
-          calcularCuotaIntereses(); // Forzamos el cálculo
-          setTimeout(() => {
-            console.error("Calculando cuota mensual nuevamente...");
-          }, 0);
-          return;
+    try {
+        if (tipoMeta === 'fija') {
+            // Meta fija
+            const data = {
+                nombre: goal.nombre,
+                montoObjetivo: goal.montoObjetivo,
+                fechaInicio: goal.fechaInicio,
+                mesesParaMeta,
+                fechaTermino,
+                ahorroMensual,
+            };
+            await axios.post('http://127.0.0.1:5000/api/metas', data, { headers });
+        } else if (tipoMeta === 'ahorro') {
+            // Meta de ahorro
+            const data = {
+                descripcion: goal.descripcion,
+                montoActual: goal.montoActual || 0.0,
+                fechaInicio: goal.fechaInicio,
+                tasaInteres: goal.tasaInteres,
+            };
+            await axios.post('http://127.0.0.1:5000/api/ahorro', data, { headers });
+        } else if (tipoMeta === 'deuda') {
+            const updatedDeuda = { ...deuda }; // Copia del estado actualizado
+
+            // Validar que cuotaMensual se haya calculado
+            if (!updatedDeuda.cuotaMensual) {
+                calcularCuotaIntereses(); // Forzamos el cálculo
+                setTimeout(() => {
+                    console.error("Calculando cuota mensual nuevamente...");
+                }, 0);
+                return;
+            }
+
+            // Formatear la tasa de interés correctamente
+            const tasaInteresFormateada = updatedDeuda.msi
+                ? "0.00" // MSI: tasa de interés es 0
+                : unformatPercentage(updatedDeuda.tasaInteres); // Formateo normal
+
+            const data = {
+                descripcion: updatedDeuda.descripcion,
+                montoDeuda: unformatCurrency(updatedDeuda.montoDeuda),
+                montoTotal: unformatCurrency(updatedDeuda.montoTotal),
+                tasaInteres: tasaInteresFormateada, // Aseguramos formato correcto
+                fechaInicio: updatedDeuda.fechaInicio,
+                cuotaMensual: unformatCurrency(updatedDeuda.cuotaMensual),
+                plazo: unformatMonths(updatedDeuda.plazo),
+            };
+
+            console.log("Datos enviados para deuda:", data);
+
+            await axios.post('http://127.0.0.1:5000/api/deuda', data, { headers });
         }
-        const data = {
-          descripcion: deuda.descripcion,
-          montoDeuda: unformatCurrency(deuda.montoDeuda),
-          montoTotal: unformatCurrency(deuda.montoTotal),
-          tasaInteres: unformatPercentage(deuda.tasaInteres),
-          fechaInicio: deuda.fechaInicio,
-          cuotaMensual: unformatCurrency(deuda.cuotaMensual),
-          plazo: unformatMonths(deuda.plazo),
-        };
-    
-      
-        console.log("Datos enviados para deuda:", data);
-      
-        await axios.post('http://127.0.0.1:5000/api/deuda', data, { headers });
-      }
-      navigate('/dashboard/metas-financieras');
+        navigate('/dashboard/metas-financieras');
     } catch (error) {
-      console.error('Error al guardar la meta', error);
+        console.error('Error al guardar la meta', error);
     }
   };
+
+  
   
 
   const formatNumber = (value) => {
@@ -435,9 +493,9 @@ const RegisterGoal = () => {
         <div id="form-meta-deuda">
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-            <small className="form-text text-muted">
-              Selecciona la fecha de inicio de la deuda
-            </small>
+              <small className="form-text text-muted">
+                Selecciona la fecha de inicio de la deuda
+              </small>
               <input
                 type="date"
                 name="fechaInicio"
@@ -459,29 +517,47 @@ const RegisterGoal = () => {
               />
             </div>
 
+            {/* Check para MSI */}
             <div className="form-group">
+              <label htmlFor="msi" className="form-label">
+                Meses Sin Intereses (MSI)
+              </label>
               <input
-                type="text"
-                name="tasaInteres"
-                placeholder="Tasa de interés (%)"
-                value={deuda.tasaInteres || ""}
-                onBlur={handleDeudaBlur}
-                onChange={(e) =>
-                  setDeuda((prev) => ({
-                    ...prev,
-                    tasaInteres: unformatPercentage(e.target.value),
-                  }))
-                }
-                required
+                type="checkbox"
+                id="msi"
+                name="msi"
+                checked={deuda.msi || false}
+                onChange={handleMsiChange}
+                className="form-control-checkbox"
               />
             </div>
+
+            {/* Campo de tasa de interés (oculto si MSI está seleccionado) */}
+            {!deuda.msi && (
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="tasaInteres"
+                  placeholder="Tasa de interés (%)"
+                  value={deuda.tasaInteres || ''}
+                  onBlur={handleDeudaBlur}
+                  onChange={(e) =>
+                    setDeuda((prev) => ({
+                      ...prev,
+                      tasaInteres: unformatPercentage(e.target.value),
+                    }))
+                  }
+                  required
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <input
                 type="text"
                 name="plazo"
                 placeholder="Plazo en meses"
-                value={deuda.plazo || ""}
+                value={deuda.plazo || ''}
                 onBlur={handleDeudaBlur}
                 onChange={(e) =>
                   setDeuda((prev) => ({
@@ -493,13 +569,12 @@ const RegisterGoal = () => {
               />
             </div>
 
-
             <div className="form-group">
               <input
                 type="text"
                 name="montoDeuda"
                 placeholder="Monto inicial (sin intereses)"
-                value={deuda.montoDeuda || ""}
+                value={deuda.montoDeuda || ''}
                 onBlur={handleDeudaBlur}
                 onChange={(e) =>
                   setDeuda((prev) => ({
@@ -511,11 +586,10 @@ const RegisterGoal = () => {
               />
             </div>
 
-
             {/* Leyenda dinámica */}
             <div className="meta-info">
               <p>
-                {leyendaDeuda.split("\n").map((line, index) => (
+                {leyendaDeuda.split('\n').map((line, index) => (
                   <span key={index}>
                     {line}
                     <br />
@@ -528,6 +602,7 @@ const RegisterGoal = () => {
           </form>
         </div>
       )}
+
 
     </div>
   );

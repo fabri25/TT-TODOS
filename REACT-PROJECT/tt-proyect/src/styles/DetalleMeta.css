@@ -212,3 +212,13 @@ button:hover {
   font-weight: bold;
   color: green;
 }
+.abonar-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.abonar-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
