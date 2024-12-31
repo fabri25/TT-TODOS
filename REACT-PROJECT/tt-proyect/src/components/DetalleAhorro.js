@@ -64,10 +64,10 @@ const DetalleAhorro = () => {
 
   const calcularDatosGrafico = () => {
     if (!ahorro || !ahorro.Abonos) return [];
-
+  
     const fechaInicio = new Date(ahorro.Fecha_Inicio);
     const fechaActual = new Date();
-
+  
     // Agrupar los abonos por mes
     const abonosPorMes = {};
     ahorro.Abonos.forEach((abono) => {
@@ -75,26 +75,31 @@ const DetalleAhorro = () => {
       const mes = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
         .toString()
         .padStart(2, '0')}`;
+  
       if (!abonosPorMes[mes]) {
         abonosPorMes[mes] = 0;
       }
-      abonosPorMes[mes] += abono.Abono;
+      abonosPorMes[mes] += parseFloat(abono.Abono) || 0; // Sumar valores como números
     });
-
-    let acumulado = 0;
+  
+    let acumuladoIdeal = 0;
     const datos = [];
-
-    // Generar puntos mensuales
-    while (fechaInicio <= fechaActual) {
-      const mes = `${fechaInicio.getFullYear()}-${(fechaInicio.getMonth() + 1)
+  
+    // Generar puntos mensuales desde fechaInicio hasta fechaActual
+    let fechaTemp = new Date(fechaInicio);
+    while (fechaTemp <= fechaActual) {
+      const mes = `${fechaTemp.getFullYear()}-${(fechaTemp.getMonth() + 1)
         .toString()
         .padStart(2, '0')}`;
-
-      acumulado += abonosPorMes[mes] || 0; // Sumar abonos del mes si existen
-      datos.push({ fecha: mes, ahorro: acumulado });
-      fechaInicio.setMonth(fechaInicio.getMonth() + 1); // Avanzar al siguiente mes
+  
+      acumuladoIdeal += abonosPorMes[mes] || 0; // Sumar abonos del mes si existen
+      datos.push({
+        fecha: mes,
+        abono: acumuladoIdeal,
+      });
+      fechaTemp.setMonth(fechaTemp.getMonth() + 1); // Avanzar al siguiente mes
     }
-
+  
     return datos;
   };
 
@@ -166,15 +171,15 @@ const DetalleAhorro = () => {
           {error && <p className="error">{error}</p>}
 
           <h3>Gráfico de Ahorro</h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={calcularDatosGrafico()}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="fecha" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="ahorro" stroke="#82ca9d" />
-            </LineChart>
-          </ResponsiveContainer>
+<ResponsiveContainer width="100%" height={400}>
+  <LineChart data={calcularDatosGrafico()}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="fecha" />
+    <YAxis />
+    <Tooltip />
+    <Line type="monotone" dataKey="abono" stroke="#82ca9d" />
+  </LineChart>
+</ResponsiveContainer>
         </>
       ) : (
         <p>No se encontró el ahorro.</p>
