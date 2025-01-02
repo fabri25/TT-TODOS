@@ -49,6 +49,9 @@ const Login = () => {
           es_admin_grupo,
           grupos_administrados,
           grupos_pertenecientes,
+          hasMetas,
+          hasAhorros,
+          hasDeudas,
         } = response.data;
 
         // Guardar el token en el almacenamiento local
@@ -61,6 +64,11 @@ const Login = () => {
         // Guardar las variables de pertenencia a grupo y rol de administrador en el almacenamiento local
         localStorage.setItem('pertenece_a_grupo', pertenece_a_grupo);
         localStorage.setItem('es_admin_grupo', es_admin_grupo);
+
+        // Guardar las banderas en el localStorage
+        localStorage.setItem('hasMetas', hasMetas);
+        localStorage.setItem('hasAhorros', hasAhorros);
+        localStorage.setItem('hasDeudas', hasDeudas);
 
         // Guardar información de los grupos en el almacenamiento local
         localStorage.setItem(

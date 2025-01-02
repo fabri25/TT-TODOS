@@ -3,11 +3,17 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/VisualizarMetas.css'; // Asegúrate de importar el archivo CSS
 import coinGif from '../assets/images/coin.gif';
+import ConfirmationModal from './ConfirmationModal'; // Asegúrate de ajustar la ruta
+
 
 const VisualizarMetas = () => {
   const [metas, setMetas] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+const [confirmationMessage, setConfirmationMessage] = useState('');
+const [onConfirmAction, setOnConfirmAction] = useState(null);
+
 
   useEffect(() => {
     fetchMetas();
@@ -76,19 +82,25 @@ const VisualizarMetas = () => {
     setLoading(false);
   };
 
+  const openDeleteConfirmation = (id_meta) => {
+    setConfirmationMessage('¿Estás seguro de que deseas eliminar esta meta?');
+    setOnConfirmAction(() => () => handleDelete(id_meta));
+    setShowConfirmationModal(true);
+  };
+  
+
   const handleDelete = async (id_meta) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar esta meta?")) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`http://127.0.0.1:5000/api/metas/${id_meta}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        fetchMetas(); // Actualizar la lista de metas después de eliminar
-      } catch (error) {
-        console.error('Error al eliminar la meta', error);
-      }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://127.0.0.1:5000/api/metas/${id_meta}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchMetas(); // Actualizar la lista de metas después de eliminar
+    } catch (error) {
+      console.error('Error al eliminar la meta', error);
     }
   };
+  
 
   const handleViewDetails = (id_meta) => {
     navigate(`/dashboard/metas/${id_meta}`);
@@ -144,7 +156,7 @@ const VisualizarMetas = () => {
                   <td>
                     <button
                       className="action-button delete-button"
-                      onClick={() => handleDelete(meta.ID_Meta)}
+                      onClick={() => openDeleteConfirmation(meta.ID_Meta)}
                     >
                       <i className="bi bi-trash"></i>
                     </button>
@@ -153,6 +165,16 @@ const VisualizarMetas = () => {
             ))}
           </tbody>
         </table>
+      )}
+      {showConfirmationModal && (
+        <ConfirmationModal
+          message={confirmationMessage}
+          onConfirm={() => {
+            setShowConfirmationModal(false);
+            if (onConfirmAction) onConfirmAction();
+          }}
+          onCancel={() => setShowConfirmationModal(false)}
+        />
       )}
     </div>
   );

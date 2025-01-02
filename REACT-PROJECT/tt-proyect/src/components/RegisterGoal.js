@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import '../styles/RegisterGoal.css';
+import ConfirmationModal from './ConfirmationModal'; // Ajusta la ruta si es necesario
+
 
 const RegisterGoal = () => {
   const [goal, setGoal] = useState({
@@ -17,6 +19,10 @@ const RegisterGoal = () => {
   const [fechaTermino, setFechaTermino] = useState('');
   const [tipoMeta, setTipoMeta] = useState(''); // Selector de tipo de meta
   const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false); // Controla el modal
+  const [confirmationMessage, setConfirmationMessage] = useState(''); // Mensaje del modal
+  const [onConfirmAction, setOnConfirmAction] = useState(null); // Acción en confirmación
+
 
   useEffect(() => {
     fetchPromedios();
@@ -235,77 +241,97 @@ const RegisterGoal = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const confirmacion = window.confirm(
-        `¿Estás seguro de que deseas crear esta meta?`
-    );
+    setConfirmationMessage('¿Estás seguro de que deseas crear esta meta?');
+    setOnConfirmAction(() => async () => {
+        const token = localStorage.getItem('token');
+        const headers = {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
 
-    if (!confirmacion) {
-        return;
-    }
+        try {
+            if (tipoMeta === 'fija') {
+                const data = {
+                    nombre: goal.nombre,
+                    montoObjetivo: goal.montoObjetivo,
+                    fechaInicio: goal.fechaInicio,
+                    mesesParaMeta,
+                    fechaTermino,
+                    ahorroMensual,
+                };
+                await axios.post('http://127.0.0.1:5000/api/metas', data, { headers });
 
-    const token = localStorage.getItem('token');
-    const headers = {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-    };
+                // Actualizar estado financiero
+                await verificarEstadoFinanciero();
 
-    try {
-        if (tipoMeta === 'fija') {
-            // Meta fija
-            const data = {
-                nombre: goal.nombre,
-                montoObjetivo: goal.montoObjetivo,
-                fechaInicio: goal.fechaInicio,
-                mesesParaMeta,
-                fechaTermino,
-                ahorroMensual,
-            };
-            await axios.post('http://127.0.0.1:5000/api/metas', data, { headers });
-        } else if (tipoMeta === 'ahorro') {
-            // Meta de ahorro
-            const data = {
-                descripcion: goal.descripcion,
-                montoActual: goal.montoActual || 0.0,
-                fechaInicio: goal.fechaInicio,
-                tasaInteres: goal.tasaInteres,
-            };
-            await axios.post('http://127.0.0.1:5000/api/ahorro', data, { headers });
-        } else if (tipoMeta === 'deuda') {
-            const updatedDeuda = { ...deuda }; // Copia del estado actualizado
+                navigate('/dashboard/metas-financieras');
+            } else if (tipoMeta === 'ahorro') {
+                const data = {
+                    descripcion: goal.descripcion,
+                    montoActual: goal.montoActual || 0.0,
+                    fechaInicio: goal.fechaInicio,
+                    tasaInteres: goal.tasaInteres,
+                };
+                await axios.post('http://127.0.0.1:5000/api/ahorro', data, { headers });
 
-            // Validar que cuotaMensual se haya calculado
-            if (!updatedDeuda.cuotaMensual) {
-                calcularCuotaIntereses(); // Forzamos el cálculo
-                setTimeout(() => {
-                    console.error("Calculando cuota mensual nuevamente...");
-                }, 0);
-                return;
+                // Actualizar estado financiero
+                await verificarEstadoFinanciero();
+
+                navigate('/dashboard/ahorros');
+            } else if (tipoMeta === 'deuda') {
+                const updatedDeuda = { ...deuda };
+
+                if (!updatedDeuda.cuotaMensual) {
+                    calcularCuotaIntereses();
+                    return;
+                }
+
+                const tasaInteresFormateada = updatedDeuda.msi
+                    ? '0.00'
+                    : unformatPercentage(updatedDeuda.tasaInteres);
+
+                const data = {
+                    descripcion: updatedDeuda.descripcion,
+                    montoDeuda: unformatCurrency(updatedDeuda.montoDeuda),
+                    montoTotal: unformatCurrency(updatedDeuda.montoTotal),
+                    tasaInteres: tasaInteresFormateada,
+                    fechaInicio: updatedDeuda.fechaInicio,
+                    cuotaMensual: unformatCurrency(updatedDeuda.cuotaMensual),
+                    plazo: unformatMonths(updatedDeuda.plazo),
+                };
+
+                await axios.post('http://127.0.0.1:5000/api/deuda', data, { headers });
+
+                // Actualizar estado financiero
+                await verificarEstadoFinanciero();
+
+                navigate('/dashboard/deudas');
             }
-
-            // Formatear la tasa de interés correctamente
-            const tasaInteresFormateada = updatedDeuda.msi
-                ? "0.00" // MSI: tasa de interés es 0
-                : unformatPercentage(updatedDeuda.tasaInteres); // Formateo normal
-
-            const data = {
-                descripcion: updatedDeuda.descripcion,
-                montoDeuda: unformatCurrency(updatedDeuda.montoDeuda),
-                montoTotal: unformatCurrency(updatedDeuda.montoTotal),
-                tasaInteres: tasaInteresFormateada, // Aseguramos formato correcto
-                fechaInicio: updatedDeuda.fechaInicio,
-                cuotaMensual: unformatCurrency(updatedDeuda.cuotaMensual),
-                plazo: unformatMonths(updatedDeuda.plazo),
-            };
-
-            console.log("Datos enviados para deuda:", data);
-
-            await axios.post('http://127.0.0.1:5000/api/deuda', data, { headers });
+        } catch (error) {
+            console.error('Error al guardar la meta', error);
         }
-        navigate('/dashboard/metas-financieras');
-    } catch (error) {
-        console.error('Error al guardar la meta', error);
-    }
-  };
+    });
+    setShowModal(true);
+};
+
+
+const verificarEstadoFinanciero = async () => {
+  try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://127.0.0.1:5000/api/estado-financiero', {
+          headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const { hasMetas, hasAhorros, hasDeudas } = response.data;
+
+      // Actualizar localStorage
+      localStorage.setItem('hasMetas', hasMetas);
+      localStorage.setItem('hasAhorros', hasAhorros);
+      localStorage.setItem('hasDeudas', hasDeudas);
+  } catch (error) {
+      console.error('Error al verificar estado financiero:', error);
+  }
+};
 
   
   
@@ -602,6 +628,17 @@ const RegisterGoal = () => {
           </form>
         </div>
       )}
+      {showModal && (
+          <ConfirmationModal
+              message={confirmationMessage}
+              onConfirm={() => {
+                  setShowModal(false);
+                  if (onConfirmAction) onConfirmAction();
+              }}
+              onCancel={() => setShowModal(false)}
+          />
+      )}
+
 
 
     </div>

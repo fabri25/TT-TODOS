@@ -222,3 +222,24 @@ button:hover {
   justify-content: center;
   margin-top: 10px;
 }
+.pay-button-red {
+  background-color: #ff4d4d; /* Rojo claro */
+  color: white; /* Texto blanco */
+  border: none;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.pay-button-red:hover {
+  background-color: #e63939; /* Rojo más oscuro al pasar el cursor */
+}
+.error-message {
+  color: #ff4d4d; /* Rojo claro */
+  font-size: 14px;
+  font-weight: bold;
+  margin: 10px 0;
+}

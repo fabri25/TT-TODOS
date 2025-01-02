@@ -7,6 +7,7 @@ import FloatingTabIncome from './FloatingTabIncome';
 import FloatingTabFixedIncome from './FloatingTabFixedIncome'; // Importar el nuevo componente
 import ConfirmationModal from './ConfirmationModal';
 import JoinGroupModal from './JoinGroupModal';
+import axios from 'axios';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 const NewLayout = () => {
@@ -24,6 +25,10 @@ const NewLayout = () => {
   const [misGrupos, setMisGrupos] = useState([]);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(false);
+  const [hasMetas, setHasMetas] = useState(false);
+  const [hasAhorros, setHasAhorros] = useState(false);
+  const [hasDeudas, setHasDeudas] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +36,7 @@ const NewLayout = () => {
     if (token) {
       const decodedToken = jwtDecode(token);
       const currentTime = Date.now() / 1000;
-
+  
       if (decodedToken.exp < currentTime) {
         localStorage.removeItem('token');
         navigate('/');
@@ -41,17 +46,21 @@ const NewLayout = () => {
     } else {
       navigate('/');
     }
-
+  
     const hasIncome = localStorage.getItem('hasIncome') === 'true';
     const showIncomeTab = localStorage.getItem('showFloatingTabIncome') === 'true';
-    const showFixedIncomeTab = localStorage.getItem('showFloatingTabFixedIncome') === 'true'; // Nueva bandera para ingresos fijos
+    const showFixedIncomeTab = localStorage.getItem('showFloatingTabFixedIncome') === 'true';
     const perteneceAGrupoLocal = localStorage.getItem('pertenece_a_grupo') === 'true';
-
+  
     setPerteneceAGrupo(perteneceAGrupoLocal);
-
+  
     const gruposUsuario = JSON.parse(localStorage.getItem('mis_grupos') || '[]');
     setMisGrupos(gruposUsuario);
-
+  
+    setHasMetas(localStorage.getItem('hasMetas') === 'true');
+    setHasAhorros(localStorage.getItem('hasAhorros') === 'true');
+    setHasDeudas(localStorage.getItem('hasDeudas') === 'true');
+  
     if (!hasIncome) {
       setShowFloatingTab(true);
     } else if (showIncomeTab) {
@@ -60,12 +69,40 @@ const NewLayout = () => {
       setFechaTerminoPeriodoNoFijo(localStorage.getItem('fechaTerminoPeriodoNoFijo') || '');
       setShowFloatingTabIncome(true);
     } else if (showFixedIncomeTab) {
-      setDescripcionIngresoFijo(localStorage.getItem('descripcionIngresoFijo') || ''); // Cargar descripción de ingresos fijos
-      setFechaUltimoIngresoFijo(localStorage.getItem('fechaUltimoIngresoFijo') || ''); // Cargar fecha de ingresos fijos
+      setDescripcionIngresoFijo(localStorage.getItem('descripcionIngresoFijo') || '');
+      setFechaUltimoIngresoFijo(localStorage.getItem('fechaUltimoIngresoFijo') || '');
       setFechaTerminoPeriodoFijo(localStorage.getItem('fechaTerminoPeriodoFijo') || '');
       setShowFloatingTabFixedIncome(true);
     }
   }, [navigate]);
+
+  const verificarEstadoFinanciero = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://127.0.0.1:5000/api/estado-financiero', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const { hasMetas, hasAhorros, hasDeudas } = response.data;
+
+      // Actualizar estados y localStorage
+      setHasMetas(hasMetas);
+      setHasAhorros(hasAhorros);
+      setHasDeudas(hasDeudas);
+
+      localStorage.setItem('hasMetas', hasMetas);
+      localStorage.setItem('hasAhorros', hasAhorros);
+      localStorage.setItem('hasDeudas', hasDeudas);
+    } catch (error) {
+      console.error('Error al verificar estado financiero:', error);
+    }
+  };
+
+  useEffect(() => {
+    verificarEstadoFinanciero();
+  }, []); // Llamar al cargar el componente
+
+  
 
   const handleSave = () => {
     setShowFloatingTab(false);
@@ -202,15 +239,21 @@ const NewLayout = () => {
                 <li>
                   <Link to="/dashboard/validar-datos-financieros">Registrar Meta</Link>
                 </li>
-                <li>
-                  <Link to="/dashboard/metas-financieras">Metas Financieras</Link>
-                </li>
-                <li>
-                  <Link to="/dashboard/deudas">Deudas</Link> {/* Nueva opción para Deudas */}
-                </li>
-                <li>
-                  <Link to="/dashboard/ahorros">Ahorros</Link> {/* Nueva opción para Ahorros */}
-                </li>
+                {hasMetas && (
+                  <li>
+                    <Link to="/dashboard/metas-financieras">Metas Financieras</Link>
+                  </li>
+                )}
+                {hasDeudas && (
+                  <li>
+                    <Link to="/dashboard/deudas">Deudas</Link>
+                  </li>
+                )}
+                {hasAhorros && (
+                  <li>
+                    <Link to="/dashboard/ahorros">Ahorros</Link>
+                  </li>
+                )}
               </ul>
             </li>
             <li className={`menu-item ${activeMenu === 'cursos' ? 'active' : ''}`}>

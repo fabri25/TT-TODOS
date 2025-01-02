@@ -3,11 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/VisualizarMetas.css'; // Usa el mismo archivo CSS
 import coinGif from '../assets/images/coin.gif';
+import ConfirmationModal from './ConfirmationModal'; // Ajusta la ruta si es necesario
+
 
 const VisualizarDeudas = () => {
   const [deudas, setDeudas] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [onConfirmAction, setOnConfirmAction] = useState(null);
+
 
   useEffect(() => {
     fetchDeudas();
@@ -28,19 +34,25 @@ const VisualizarDeudas = () => {
     setLoading(false);
   };
 
+  const openDeleteConfirmation = (id_deuda) => {
+    setConfirmationMessage('¿Estás seguro de que deseas eliminar esta deuda?');
+    setOnConfirmAction(() => () => handleDelete(id_deuda));
+    setShowConfirmationModal(true);
+  };
+  
+
   const handleDelete = async (id_deuda) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta deuda?')) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`http://127.0.0.1:5000/api/deudas/${id_deuda}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchDeudas(); // Actualizar la lista después de eliminar
-      } catch (error) {
-        console.error('Error al eliminar la deuda', error);
-      }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://127.0.0.1:5000/api/deudas/${id_deuda}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchDeudas(); // Actualizar la lista después de eliminar
+    } catch (error) {
+      console.error('Error al eliminar la deuda', error);
     }
   };
+  
 
   const handleViewDetails = (id_deuda) => {
     navigate(`/dashboard/deudas/${id_deuda}`);
@@ -108,7 +120,7 @@ const VisualizarDeudas = () => {
                 <td>
                   <button
                     className="action-button delete-button"
-                    onClick={() => handleDelete(deuda.ID_Deuda)}
+                    onClick={() => openDeleteConfirmation(deuda.ID_Deuda)}
                   >
                     <i className="bi bi-trash"></i>
                   </button>
@@ -117,6 +129,16 @@ const VisualizarDeudas = () => {
             ))}
           </tbody>
         </table>
+      )}
+      {showConfirmationModal && (
+        <ConfirmationModal
+          message={confirmationMessage}
+          onConfirm={() => {
+            setShowConfirmationModal(false);
+            if (onConfirmAction) onConfirmAction();
+          }}
+          onCancel={() => setShowConfirmationModal(false)}
+        />
       )}
     </div>
   );

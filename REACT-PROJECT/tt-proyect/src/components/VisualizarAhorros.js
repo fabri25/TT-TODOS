@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom'; // Importa useNavigate
 import axios from 'axios';
 import '../styles/VisualizarMetas.css'; // Usa el mismo archivo CSS del componente original
 import coinGif from '../assets/images/coin.gif';
+import ConfirmationModal from './ConfirmationModal'; // Asegúrate de ajustar la ruta
 
 const VisualizarAhorros = () => {
   const [ahorros, setAhorros] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate(); // Inicializa useNavigate
-
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [onConfirmAction, setOnConfirmAction] = useState(null);
 
   useEffect(() => {
     fetchAhorros();
@@ -18,6 +21,13 @@ const VisualizarAhorros = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
+
+      // Actualizar ahorros antes de obtener los datos
+      await axios.post('http://127.0.0.1:5000/api/ahorros/actualizar', null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Obtener los ahorros actualizados
       const response = await axios.get('http://127.0.0.1:5000/api/ahorros', {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -28,26 +38,28 @@ const VisualizarAhorros = () => {
     }
     setLoading(false);
   };
-  
+
+  const openDeleteConfirmation = (id_ahorro) => {
+    setConfirmationMessage('¿Estás seguro de que deseas eliminar este ahorro?');
+    setOnConfirmAction(() => () => handleDelete(id_ahorro));
+    setShowConfirmationModal(true);
+  };
 
   const handleDelete = async (id_ahorro) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este ahorro?")) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`http://127.0.0.1:5000/api/ahorros/${id_ahorro}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        fetchAhorros(); // Actualizar la lista de ahorros después de eliminar
-      } catch (error) {
-        console.error('Error al eliminar el ahorro', error);
-      }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://127.0.0.1:5000/api/ahorros/${id_ahorro}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchAhorros(); // Actualizar la lista de ahorros después de eliminar
+    } catch (error) {
+      console.error('Error al eliminar el ahorro', error);
     }
   };
 
   const handleViewDetails = (id_ahorro) => {
     navigate(`/dashboard/ahorros/${id_ahorro}`);
   };
-  
 
   return (
     <div className="metas-container">
@@ -69,6 +81,7 @@ const VisualizarAhorros = () => {
               <th>Monto Ahorrado</th>
               <th>Fecha de Inicio</th>
               <th>Tasa de Interés (%)</th>
+              <th>Rendimiento</th>
               <th>Detalles</th>
               <th>Eliminar</th>
             </tr>
@@ -86,17 +99,23 @@ const VisualizarAhorros = () => {
                 <td>{new Date(ahorro.Fecha_Inicio).toLocaleDateString()}</td>
                 <td>{parseFloat(ahorro.Tasa_Interes).toFixed(2)}%</td>
                 <td>
-                <button
+                  {parseFloat(ahorro.Rendimiento || 0).toLocaleString('es-MX', {
+                    style: 'currency',
+                    currency: 'MXN',
+                  })}
+                </td>
+                <td>
+                  <button
                     className="action-button details-button"
                     onClick={() => handleViewDetails(ahorro.ID_Ahorro)}
-                    >
+                  >
                     <i className="bi bi-eye"></i>
-                    </button>
+                  </button>
                 </td>
                 <td>
                   <button
                     className="action-button delete-button"
-                    onClick={() => handleDelete(ahorro.ID_Ahorro)}
+                    onClick={() => openDeleteConfirmation(ahorro.ID_Ahorro)}
                   >
                     <i className="bi bi-trash"></i>
                   </button>
@@ -105,6 +124,16 @@ const VisualizarAhorros = () => {
             ))}
           </tbody>
         </table>
+      )}
+      {showConfirmationModal && (
+        <ConfirmationModal
+          message={confirmationMessage}
+          onConfirm={() => {
+            setShowConfirmationModal(false);
+            if (onConfirmAction) onConfirmAction();
+          }}
+          onCancel={() => setShowConfirmationModal(false)}
+        />
       )}
     </div>
   );

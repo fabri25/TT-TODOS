@@ -3,6 +3,11 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import '../styles/DetalleMeta.css';
 import coinGif from '../assets/images/coin.gif';
+import FloatingTabCuotaAtrasada from './FloatingTabCuotaAtrasada'; // Ajusta la ruta según la ubicación del archivo
+import { useCallback } from 'react';
+import ConfirmationModal from './ConfirmationModal'; // Ajusta la ruta si es necesario
+
+
 
 const DetalleDeuda = () => {
   const { idDeuda } = useParams();
@@ -12,12 +17,12 @@ const DetalleDeuda = () => {
   const [montoAbonar, setMontoAbonar] = useState('');
   const [nuevaCuota, setNuevaCuota] = useState(null);
   const [cuotasRestantes, setCuotasRestantes] = useState(null);
+  const [showModal, setShowModal] = useState(false); // Estado para controlar el modal
+  const [cuotaSeleccionada, setCuotaSeleccionada] = useState(null); // Cuota seleccionada para el modal
+  
+  
 
-  useEffect(() => {
-    fetchDeuda();
-  }, []);
-
-  const fetchDeuda = async () => {
+  const fetchDeuda = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -30,7 +35,12 @@ const DetalleDeuda = () => {
       setError('Error al cargar la información de la deuda');
     }
     setLoading(false);
-  };
+  }, [idDeuda]); // Incluye solo las dependencias relevantes
+  
+  useEffect(() => {
+    fetchDeuda();
+  }, [fetchDeuda]); // Usa fetchDeuda como dependencia
+  
 
   const handlePayCuota = async (idCuota) => {
     try {
@@ -71,19 +81,58 @@ const DetalleDeuda = () => {
           nueva_cuota: parseFloat(nuevaCuota),
           saldo_anterior: saldoAnterior,
           nuevo_saldo: nuevoSaldo,
-          tasa_interes: deuda.Tasa_Interes // Enviamos la tasa de interés
+          tasa_interes: deuda.Tasa_Interes, // Enviamos la tasa de interés
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
   
-      alert('Abono realizado exitosamente.');
-      setMontoAbonar('');
-      fetchDeuda(); // Actualiza la información después del abono
+      setMontoAbonar(''); // Limpia el campo de abono
+      fetchDeuda(); // Recarga la información de la deuda
     } catch (error) {
       console.error('Error al realizar el abono:', error);
       setError('No se pudo realizar el abono. Por favor, intenta de nuevo.');
+    }
+  };
+  
+
+  const isCuotaVencida = (fechaLimite) => {
+    const hoy = new Date();
+    const fechaLimiteDate = new Date(fechaLimite);
+    if (fechaLimiteDate < hoy) {
+      const diasAtraso = Math.floor((hoy - fechaLimiteDate) / (1000 * 60 * 60 * 24));
+      return diasAtraso;
+    }
+    return 0; // No está vencida
+  };
+
+  const handleOpenModal = (cuota) => {
+    setCuotaSeleccionada(cuota); // Guardar la cuota seleccionada
+    setShowModal(true); // Mostrar el modal
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false); // Cerrar el modal
+    setCuotaSeleccionada(null); // Limpiar la cuota seleccionada
+  };
+
+  const handlePayAtrasada = async (idCuota, nuevoMonto) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://127.0.0.1:5000/api/deudas/cuotas/${idCuota}/pagar-atrasada`,
+        {
+          nuevoMonto: parseFloat(nuevoMonto),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      fetchDeuda(); // Recargar la información después del pago
+    } catch (error) {
+      console.error('Error al pagar la cuota atrasada:', error);
+      setError('No se pudo completar el pago. Inténtalo de nuevo.');
     }
   };
   
@@ -164,63 +213,90 @@ const DetalleDeuda = () => {
           <br></br>
 
           <h3>Cuotas</h3>
-          <table className="transacciones-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Monto</th>
-                <th>Interés de la Cuota</th>
-                <th>Capital Abonado</th>
-                <th>Saldo Restante</th>
-                <th>Fecha Límite</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deuda.Cuotas.map((cuota, index) => (
-                <tr key={cuota.ID_Deuda_Cuota}>
-                  <td>{index + 1}</td>
-                  <td>
-                    {parseFloat(cuota.Cuota).toLocaleString('es-MX', {
-                      style: 'currency',
-                      currency: 'MXN',
-                    })}
-                  </td>
-                  <td>
-                    {parseFloat(cuota.Interes_Cuota).toLocaleString('es-MX', {
-                      style: 'currency',
-                      currency: 'MXN',
-                    })}
-                  </td>
-                  <td>
-                    {parseFloat(cuota.Capital_Abonado).toLocaleString('es-MX', {
-                      style: 'currency',
-                      currency: 'MXN',
-                    })}
-                  </td>
-                  <td>
-                    {parseFloat(cuota.Saldo_Restante).toLocaleString('es-MX', {
-                      style: 'currency',
-                      currency: 'MXN',
-                    })}
-                  </td>
-                  <td>{new Date(cuota.Fecha_Limite).toLocaleDateString()}</td>
-                  <td className="table-cell-center">
-                    {cuota.Estado === 'Pendiente' ? (
-                      <button
-                        className="action-button pay-button-yellow"
-                        onClick={() => handlePayCuota(cuota.ID_Deuda_Cuota)}
-                      >
-                        Pagar
-                      </button>
-                    ) : (
-                      <span className="paid-label">Pagado</span>
-                    )}
-                  </td>
+          {deuda.Cuotas.some((cuota) => cuota.Dias_Atraso > 0 && cuota.Estado === 'Pendiente') && (
+            <div className="error-message">
+              {deuda.Cuotas.filter((cuota) => cuota.Dias_Atraso > 0 && cuota.Estado === 'Pendiente').map(
+                (cuota, index) => (
+                  <p key={index} className="error-message">
+                    La cuota #{index + 1} está atrasada hace {cuota.Dias_Atraso} días. La fecha límite de pago fue{' '}
+                    {new Date(cuota.Fecha_Limite).toLocaleDateString()}.
+                  </p>
+                )
+              )}
+            </div>
+          )}
+
+            <table className="transacciones-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Monto</th>
+                  <th>Interés de la Cuota</th>
+                  <th>Capital Abonado</th>
+                  <th>Saldo Restante</th>
+                  <th>Fecha Límite</th>
+                  <th>Acción</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {deuda.Cuotas.map((cuota, index) => {
+                  const diasAtraso = isCuotaVencida(cuota.Fecha_Limite);
+                  return (
+                    <tr key={cuota.ID_Deuda_Cuota}>
+                      <td>{index + 1}</td>
+                      <td>
+                        {parseFloat(cuota.Cuota).toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </td>
+                      <td>
+                        {parseFloat(cuota.Interes_Cuota).toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </td>
+                      <td>
+                        {parseFloat(cuota.Capital_Abonado).toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </td>
+                      <td>
+                        {parseFloat(cuota.Saldo_Restante).toLocaleString("es-MX", {
+                          style: "currency",
+                          currency: "MXN",
+                        })}
+                      </td>
+                      <td>{new Date(cuota.Fecha_Limite).toLocaleDateString()}</td>
+                      <td className="table-cell-center">
+                        {cuota.Estado === 'Pendiente' ? (
+                          <button
+                            className={`action-button ${diasAtraso > 0 ? 'pay-button-red' : 'pay-button-yellow'}`}
+                            onClick={() =>
+                              diasAtraso > 0 ? handleOpenModal(cuota) : handlePayCuota(cuota.ID_Deuda_Cuota)
+                            }
+                          >
+                            {diasAtraso > 0 ? `Pagar (Vencida)` : `Pagar`}
+                          </button>
+                        ) : (
+                          <span className="paid-label">Pagado</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {showModal && cuotaSeleccionada && (
+              <FloatingTabCuotaAtrasada
+                cuota={cuotaSeleccionada}
+                onClose={handleCloseModal}
+                onPay={handlePayAtrasada}
+              />
+            )}
+
+
           <br></br>
           <h4>Abonar a Capital</h4>
           <div className="form-group abonar-container">
