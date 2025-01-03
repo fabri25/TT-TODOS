@@ -138,6 +138,39 @@ def login():
         cursor.execute("SELECT COUNT(*) AS total FROM Deuda WHERE ID_Usuario = %s", (user_id,))
         has_deudas = cursor.fetchone()['total'] > 0
 
+        # Verificar si el usuario tiene deudas
+        cursor.execute("SELECT COUNT(*) AS total FROM Deuda WHERE ID_Usuario = %s", (user_id,))
+        has_deudas = cursor.fetchone()['total'] > 0
+
+        # Verificar cuotas próximas a vencer
+        query_cuotas = """
+            SELECT c.ID_Deuda_Cuota, c.ID_Deuda, c.Cuota, c.Fecha_Limite, d.Descripcion AS Descripcion_Deuda
+            FROM Deuda_Cuota c
+            INNER JOIN Deuda d ON c.ID_Deuda = d.ID_Deuda
+            WHERE c.Estado = 'Pendiente' AND d.ID_Usuario = %s
+            ORDER BY c.Fecha_Limite ASC
+        """
+        cursor.execute(query_cuotas, (user_id,))
+        cuotas_pendientes = cursor.fetchall()
+
+        cuotas_proximas = []  # Lista para cuotas con fecha límite próxima
+        bandera_cuotas_proximas = False  # Bandera para indicar si hay cuotas próximas a vencer
+        fecha_actual = datetime.now().date()  # Fecha actual
+
+        # Procesar cuotas y calcular días restantes
+        for cuota in cuotas_pendientes:
+            fecha_limite = cuota['Fecha_Limite']
+            dias_restantes = (fecha_limite - fecha_actual).days
+            cuota['Dias_Restantes'] = dias_restantes
+
+            # Verificar si está dentro de los 3 días previos a la fecha límite
+            if 0 <= dias_restantes <= 3:
+                bandera_cuotas_proximas = True
+                cuotas_proximas.append(cuota)
+
+            # Print para depurar
+            print(f"Cuota ID: {cuota['ID_Deuda_Cuota']}, Días restantes: {dias_restantes}")
+
 
         # Verificar si es administrador de algún grupo
         cursor.execute("SELECT ID_Grupo, Nombre_Grupo FROM Grupo WHERE ID_Admin = %s", (user_id,))
@@ -270,6 +303,8 @@ def login():
             "hasMetas": has_metas,
             "hasAhorros": has_ahorros,
             "hasDeudas": has_deudas,
+            "cuotasProximas" : cuotas_proximas,
+            "tieneCuotasProximas": bandera_cuotas_proximas,
         }
 
         return jsonify(response_data), 200

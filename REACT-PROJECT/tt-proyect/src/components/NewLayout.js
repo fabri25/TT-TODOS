@@ -9,6 +9,8 @@ import ConfirmationModal from './ConfirmationModal';
 import JoinGroupModal from './JoinGroupModal';
 import axios from 'axios';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
+import FloatingTabCuota from './FloatingTabCuota'; // Importar el nuevo componente
+
 
 const NewLayout = () => {
   const [showFloatingTab, setShowFloatingTab] = useState(false);
@@ -28,11 +30,16 @@ const NewLayout = () => {
   const [hasMetas, setHasMetas] = useState(false);
   const [hasAhorros, setHasAhorros] = useState(false);
   const [hasDeudas, setHasDeudas] = useState(false);
+  const [showFloatingTabCuota, setShowFloatingTabCuota] = useState(false);
+  const [currentCuotaIndex, setCurrentCuotaIndex] = useState(0); // Índice de la cuota actual
+  const [cuotasProximas, setCuotasProximas] = useState([]); // Datos de las cuotas próximas
+
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    console.log("Token:", token);
     if (token) {
       const decodedToken = jwtDecode(token);
       const currentTime = Date.now() / 1000;
@@ -50,13 +57,17 @@ const NewLayout = () => {
     const hasIncome = localStorage.getItem('hasIncome') === 'true';
     const showIncomeTab = localStorage.getItem('showFloatingTabIncome') === 'true';
     const showFixedIncomeTab = localStorage.getItem('showFloatingTabFixedIncome') === 'true';
-    const perteneceAGrupoLocal = localStorage.getItem('pertenece_a_grupo') === 'true';
+    const tieneCuotasProximas = localStorage.getItem('tieneCuotasProximas') === 'true'; // Asegúrate de esta comparación
+    const cuotas = JSON.parse(localStorage.getItem('cuotasProximas') || '[]');
   
-    setPerteneceAGrupo(perteneceAGrupoLocal);
+    console.log("hasIncome:", hasIncome);
+    console.log("showIncomeTab:", showIncomeTab);
+    console.log("showFixedIncomeTab:", showFixedIncomeTab);
+    console.log("tieneCuotasProximas:", tieneCuotasProximas);
+    console.log("cuotasProximas:", cuotas);
   
-    const gruposUsuario = JSON.parse(localStorage.getItem('mis_grupos') || '[]');
-    setMisGrupos(gruposUsuario);
-  
+    setPerteneceAGrupo(localStorage.getItem('pertenece_a_grupo') === 'true');
+    setMisGrupos(JSON.parse(localStorage.getItem('mis_grupos') || '[]'));
     setHasMetas(localStorage.getItem('hasMetas') === 'true');
     setHasAhorros(localStorage.getItem('hasAhorros') === 'true');
     setHasDeudas(localStorage.getItem('hasDeudas') === 'true');
@@ -73,8 +84,25 @@ const NewLayout = () => {
       setFechaUltimoIngresoFijo(localStorage.getItem('fechaUltimoIngresoFijo') || '');
       setFechaTerminoPeriodoFijo(localStorage.getItem('fechaTerminoPeriodoFijo') || '');
       setShowFloatingTabFixedIncome(true);
+    } else if (tieneCuotasProximas && cuotas.length > 0) {
+      console.log("Mostrando ventana flotante de cuotas");
+      setCuotasProximas(cuotas);
+      setShowFloatingTabCuota(true);
     }
   }, [navigate]);
+  
+  
+  
+
+  const handleSaveCuota = () => {
+    if (currentCuotaIndex < cuotasProximas.length - 1) {
+      setCurrentCuotaIndex((prevIndex) => prevIndex + 1); // Muestra la siguiente cuota
+    } else {
+      setShowFloatingTabCuota(false); // Oculta la ventana flotante
+      localStorage.setItem('showFloatingTabCuota', 'false'); // Actualiza el localStorage
+    }
+  };
+  
 
   const verificarEstadoFinanciero = async () => {
     try {
@@ -294,6 +322,16 @@ const NewLayout = () => {
 
             />
           )}
+          {showFloatingTabCuota && cuotasProximas.map((cuota, index) => (
+            <FloatingTabCuota
+              key={index}
+              descripcionDeuda={cuota.Descripcion_Deuda}
+              fechaLimite={cuota.Fecha_Limite}
+              monto={cuota.Cuota}
+              idCuota={cuota.ID_Deuda_Cuota}
+              onClose={() => setShowFloatingTabCuota(false)}
+            />
+          ))}
           <Outlet />
         </main>
       </div>

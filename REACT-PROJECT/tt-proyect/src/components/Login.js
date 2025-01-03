@@ -52,6 +52,8 @@ const Login = () => {
           hasMetas,
           hasAhorros,
           hasDeudas,
+          tieneCuotasProximas,
+          cuotasProximas, // Nueva información
         } = response.data;
 
         // Guardar el token en el almacenamiento local
@@ -69,6 +71,11 @@ const Login = () => {
         localStorage.setItem('hasMetas', hasMetas);
         localStorage.setItem('hasAhorros', hasAhorros);
         localStorage.setItem('hasDeudas', hasDeudas);
+
+        // Guardar la bandera y la información de cuotas próximas a vencer
+        localStorage.setItem('tieneCuotasProximas', tieneCuotasProximas ? 'true' : 'false');
+        localStorage.setItem('cuotasProximas', JSON.stringify(cuotasProximas)); // Guardar como string
+
 
         // Guardar información de los grupos en el almacenamiento local
         localStorage.setItem(
@@ -117,6 +124,8 @@ const Login = () => {
         console.log('montoIngresoFijo:', localStorage.getItem('montoIngresoFijo'));
         console.log('fechaUltimoIngresoFijo:', localStorage.getItem('fechaUltimoIngresoFijo'));
         console.log('fechaTerminoPeriodoFijo:', localStorage.getItem('fechaTerminoPeriodoFijo'));
+        console.log('tieneCuotasProximas:', localStorage.getItem('tieneCuotasProximas'));
+        console.log('cuotasProximas:', JSON.parse(localStorage.getItem('cuotasProximas')));
 
         console.log('Login exitoso');
         navigate('/dashboard'); // Redirige al Dashboard después de iniciar sesión
