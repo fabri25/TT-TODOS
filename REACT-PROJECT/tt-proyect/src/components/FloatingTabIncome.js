@@ -70,7 +70,7 @@ const FloatingTabIncome = ({ onSave, descripcionIngreso = '', fechaUltimoIngreso
         if (onSave) {
           onSave(); // Llamar a la función onSave después de guardar
         }
-        window.location.reload();
+        
       } catch (error) {
         console.error('Error al procesar el ingreso:', error);
         alert('Hubo un error al procesar el ingreso. Inténtalo nuevamente.');

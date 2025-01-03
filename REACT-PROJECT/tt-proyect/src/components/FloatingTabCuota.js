@@ -15,7 +15,7 @@ const FloatingTabCuota = ({ descripcionDeuda, fechaLimite, monto, idCuota, onClo
   }, [descripcionDeuda, fechaLimite, monto, idCuota]);
 
   const handleIrPagar = () => {
-    navigate(`/dashboard/deudas/${idCuota}`); // Redirige a la tabla de cuotas
+    navigate(`/dashboard/deudas`); // Redirige a la tabla de cuotas
     onClose(); // Cerrar la ventana flotante
   };
 
