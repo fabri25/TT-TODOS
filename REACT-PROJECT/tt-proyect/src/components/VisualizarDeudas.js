@@ -80,6 +80,7 @@ const VisualizarDeudas = () => {
               <th>Tasa de Interés (%)</th>
               <th>Plazo (meses)</th>
               <th>Fecha de Inicio</th>
+              <th>Estatus</th> {/* Nueva columna */}
               <th>Detalles</th>
               <th>Eliminar</th>
             </tr>
@@ -109,6 +110,7 @@ const VisualizarDeudas = () => {
                 </td>
                 <td>{deuda.Plazo}</td>
                 <td>{new Date(deuda.Fecha_Inicio).toLocaleDateString()}</td>
+                <td>{deuda.Estatus || "N/A"}</td> {/* Nueva celda */}
                 <td>
                   <button
                     className="action-button details-button"

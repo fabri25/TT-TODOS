@@ -178,3 +178,9 @@ body.modal-open {
 .btn-danger.custom-btn:hover {
   background-color: #c82333 !important; /* Fuerza un rojo más oscuro */
 }
+/* Asegurar que todo el texto dentro de la ventana sea blanco */
+.floating-tab, 
+.floating-tab * {
+  color: white !important; /* Fuerza el color blanco */
+}
+

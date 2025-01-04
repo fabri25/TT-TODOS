@@ -6,6 +6,8 @@ import coinGif from '../assets/images/coin.gif';
 import FloatingTabCuotaAtrasada from './FloatingTabCuotaAtrasada'; // Ajusta la ruta según la ubicación del archivo
 import { useCallback } from 'react';
 import ConfirmationModal from './ConfirmationModal'; // Ajusta la ruta si es necesario
+import FloatingTabFelicidades from './FloatingTabFelicidades'; // Importa el componente
+
 
 
 
@@ -19,6 +21,8 @@ const DetalleDeuda = () => {
   const [cuotasRestantes, setCuotasRestantes] = useState(null);
   const [showModal, setShowModal] = useState(false); // Estado para controlar el modal
   const [cuotaSeleccionada, setCuotaSeleccionada] = useState(null); // Cuota seleccionada para el modal
+  const [showFelicitationModal, setShowFelicitationModal] = useState(false); // Nuevo estado para la ventana de felicitación
+  const [cuotasPendientes, setCuotasPendientes] = useState(0); // Cuotas pendientes
   
   
 
@@ -30,6 +34,12 @@ const DetalleDeuda = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDeuda(response.data);
+      // Actualizar el número de cuotas pendientes
+      const cuotasPendientes = response.data.Cuotas.filter((cuota) => cuota.Estado === 'Pendiente').length;
+      setCuotasPendientes(cuotasPendientes);
+
+      // Mostrar en consola
+      console.log(`Cuotas pendientes para la deuda ${idDeuda}: ${cuotasPendientes}`);
     } catch (error) {
       console.error('Error al obtener el detalle de la deuda:', error);
       setError('Error al cargar la información de la deuda');
@@ -51,7 +61,16 @@ const DetalleDeuda = () => {
         {
           headers: { Authorization: `Bearer ${token}` },
         }
+        
       );
+      // Refrescar datos después del pago
+      await fetchDeuda();
+
+      // Verificar si ya no quedan cuotas pendientes
+      if (cuotasPendientes === 1) {
+        setShowFelicitationModal(true); // Mostrar felicitación
+      }
+
       fetchDeuda(); // Refresca los datos después del pago
     } catch (error) {
       console.error('Error al pagar la cuota:', error);
@@ -72,9 +91,19 @@ const DetalleDeuda = () => {
       : parseFloat(deuda.Monto_Total);
     const nuevoSaldo = saldoAnterior - parseFloat(montoAbonar);
   
+    console.log('Nuevo saldo después del abono:', nuevoSaldo);
+  
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
+      console.log('Datos enviados al endpoint:', {
+        monto_abonado: parseFloat(montoAbonar),
+        nueva_cuota: parseFloat(nuevaCuota),
+        saldo_anterior: saldoAnterior,
+        nuevo_saldo: nuevoSaldo,
+        tasa_interes: deuda.Tasa_Interes,
+      });
+  
+      const response = await axios.post(
         `http://127.0.0.1:5000/api/deudas/${idDeuda}/abonar`,
         {
           monto_abonado: parseFloat(montoAbonar),
@@ -88,13 +117,38 @@ const DetalleDeuda = () => {
         }
       );
   
+      console.log('Respuesta del servidor:', response.data);
+  
       setMontoAbonar(''); // Limpia el campo de abono
-      fetchDeuda(); // Recarga la información de la deuda
+      await fetchDeuda(); // Recarga la información de la deuda
+  
+      console.log('Estado de la deuda después de fetchDeuda:', deuda);
+  
+      // Verificar si la deuda se liquidó
+      if (parseFloat(nuevaCuota) === 0) {
+        console.log('Condición nuevaCuota === 0 cumplida. Deuda liquidada con abono.');
+        setShowFelicitationModal(true);
+      } else {
+        // Verificar si todas las cuotas están marcadas como pagadas
+        const todasPagadas = deuda.Cuotas.every((cuota) => cuota.Estado === 'Pagado');
+        console.log('¿Todas las cuotas están pagadas?', todasPagadas);
+  
+        if (todasPagadas) {
+          console.log('Todas las cuotas están marcadas como pagadas. Mostrando felicitaciones.');
+          setShowFelicitationModal(true);
+        } else {
+          console.log('No se cumplen las condiciones para mostrar felicitaciones.');
+        }
+      }
     } catch (error) {
       console.error('Error al realizar el abono:', error);
       setError('No se pudo realizar el abono. Por favor, intenta de nuevo.');
     }
   };
+  
+  
+  
+  
   
 
   const isCuotaVencida = (fechaLimite) => {
@@ -330,6 +384,22 @@ const DetalleDeuda = () => {
       ) : (
         <p>No se encontró la deuda.</p>
       )}
+      {showFelicitationModal && (
+        <div className="floating-tab-backdrop">
+          <div className="floating-tab">
+            <h4>¡Felicidades!</h4>
+            <p>Has terminado de pagar tu deuda.</p>
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={() => setShowFelicitationModal(false)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+      
     </div>
   );
 };
