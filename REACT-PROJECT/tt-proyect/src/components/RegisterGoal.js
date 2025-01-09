@@ -470,7 +470,7 @@ const verificarEstadoFinanciero = async () => {
             <input
               type="number"
               name="tasaInteres"
-              placeholder="Tasa de Interés (%)"
+              placeholder="Tasa de Rendimiento (%)"
               value={goal.tasaInteres || ''}
               onChange={(e) => setGoal({ ...goal, tasaInteres: e.target.value })}
               required

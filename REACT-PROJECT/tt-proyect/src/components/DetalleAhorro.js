@@ -17,6 +17,7 @@ const DetalleAhorro = () => {
   const { idAhorro } = useParams();
   const [ahorro, setAhorro] = useState(null);
   const [abono, setAbono] = useState({ monto: '', fecha: '' });
+  const [retiro, setRetiro] = useState({ monto: '', fecha: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +39,7 @@ const DetalleAhorro = () => {
     setLoading(false);
   };
 
-  const handleSubmit = async (e) => {
+  const handleAbonoSubmit = async (e) => {
     e.preventDefault();
     if (!abono.monto || !abono.fecha) {
       setError('Todos los campos son obligatorios');
@@ -99,8 +100,33 @@ const DetalleAhorro = () => {
       });
       fechaTemp.setMonth(fechaTemp.getMonth() + 1); // Avanzar al siguiente mes
     }
-  
     return datos;
+  };
+
+
+  
+  const handleRetiroSubmit = async (e) => {
+    e.preventDefault();
+    if (!retiro.monto || !retiro.fecha) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://127.0.0.1:5000/api/ahorro/${idAhorro}/retiros`,
+        { montoRetirado: retiro.monto, fechaRetiro: retiro.fecha },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setRetiro({ monto: '', fecha: '' });
+      setError('');
+      fetchAhorro(); // Actualizar el estado del ahorro
+    } catch (error) {
+      console.error('Error al registrar el retiro', error);
+      setError('Error al registrar el retiro');
+    }
   };
 
   return (
@@ -121,13 +147,6 @@ const DetalleAhorro = () => {
               style: 'currency',
               currency: 'MXN',
             })}
-          </p>
-          <p>
-            <strong>Fecha de Inicio:</strong>{' '}
-            {new Date(ahorro.Fecha_Inicio).toLocaleDateString()}
-          </p>
-          <p>
-            <strong>Tasa de Interés:</strong> {ahorro.Tasa_Interes}%
           </p>
 
           <h3>Abonos</h3>
@@ -154,7 +173,7 @@ const DetalleAhorro = () => {
           </table>
 
           <h3>Registrar Abono</h3>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleAbonoSubmit}>
             <input
               type="number"
               placeholder="Monto"
@@ -168,18 +187,58 @@ const DetalleAhorro = () => {
             />
             <button type="submit">Registrar</button>
           </form>
+
+          <h3>Retiros</h3>
+            <table className="retiros-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ahorro.Retiros.map((retiro) => (
+                  <tr key={retiro.ID_Retiro}>
+                    <td>{new Date(retiro.Fecha_Retiro).toLocaleDateString()}</td>
+                    <td>
+                      {parseFloat(retiro.Monto_Retirado).toLocaleString('es-MX', {
+                        style: 'currency',
+                        currency: 'MXN',
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <h3>Registrar Retiro</h3>
+            <form onSubmit={handleRetiroSubmit}>
+              <input
+                type="number"
+                placeholder="Monto"
+                value={retiro.monto}
+                onChange={(e) => setRetiro({ ...retiro, monto: e.target.value })}
+              />
+              <input
+                type="date"
+                value={retiro.fecha}
+                onChange={(e) => setRetiro({ ...retiro, fecha: e.target.value })}
+              />
+              <button type="submit" className="retiro-button">Retirar</button>
+            </form>
+
           {error && <p className="error">{error}</p>}
 
           <h3>Gráfico de Ahorro</h3>
-<ResponsiveContainer width="100%" height={400}>
-  <LineChart data={calcularDatosGrafico()}>
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis dataKey="fecha" />
-    <YAxis />
-    <Tooltip />
-    <Line type="monotone" dataKey="abono" stroke="#82ca9d" />
-  </LineChart>
-</ResponsiveContainer>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={calcularDatosGrafico()}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="fecha" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="abono" stroke="#82ca9d" />
+            </LineChart>
+          </ResponsiveContainer>
         </>
       ) : (
         <p>No se encontró el ahorro.</p>

@@ -243,3 +243,57 @@ button:hover {
   font-weight: bold;
   margin: 10px 0;
 }
+/* Estilo específico para la tabla de retiros */
+.retiros-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+.retiros-table th,
+.retiros-table td {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+/* Encabezado rojo para la tabla de retiros */
+.retiros-table th {
+  background-color: #ff4d4d; /* Rojo claro */
+  color: white; /* Texto blanco */
+}
+
+.retiros-table tr:nth-child(even) {
+  background-color: #f2f2f2; /* Fondo alternado para filas pares */
+}
+
+/* Celdas de la tabla de retiros */
+.retiros-table td {
+  color: #d32f2f; /* Texto rojo oscuro */
+  font-weight: bold;
+}
+
+/* Hover para las filas de la tabla */
+.retiros-table tr:hover {
+  background-color: #ffe5e5; /* Fondo ligeramente rosado al pasar el cursor */
+}
+/* Botón rojo para registrar retiro */
+.retiro-button {
+  padding: 10px;
+  font-size: 16px;
+  background-color: #ff4d4d; /* Rojo claro */
+  color: white; /* Texto blanco */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.retiro-button:hover {
+  background-color: #e63939; /* Rojo más oscuro al pasar el cursor */
+}
+
+.retiro-button:active {
+  background-color: #cc3333; /* Rojo aún más oscuro al hacer clic */
+}
