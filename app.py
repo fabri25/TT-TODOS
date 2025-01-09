@@ -454,7 +454,7 @@ def confirm_email(token):
     <html>
         <body>
             <script>
-                window.location.href = "http://localhost:3000/email-verified";
+                window.location.href = "http://localhost:3000/";
             </script>
         </body>
     </html>
